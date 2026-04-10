@@ -1,3 +1,4 @@
+// app/dashboard/page.tsx (or wherever Dashboard lives)
 "use client"
 
 import { useState } from "react"
@@ -7,42 +8,59 @@ import RouteSidebar from "@/components/RouteSidebar"
 
 export default function Dashboard() {
   const { data: session } = useSession()
-  
-  // These only update when "Submit" is clicked
+
   const [activeSource, setActiveSource] = useState("")
   const [activeDestination, setActiveDestination] = useState("")
-  
-  const [travelInfo, setTravelInfo] = useState<{ distance: string; duration: string } | null>(null)
+  const [travelInfo, setTravelInfo] = useState<{
+    source_station: string
+    source_distance: string
+    source_walk: string
+    dest_station: string
+    dest_distance: string
+    dest_walk: string
+  } | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  // This function will be passed to the Sidebar
-  const handleCalculateRoute = (src: string, dest: string) => {
+  const handleCalculateRoute = async (src: string, dest: string) => {
     setActiveSource(src)
     setActiveDestination(dest)
+    setTravelInfo(null)
+
+    try {
+      setLoading(true)
+      const res = await fetch(
+        `http://127.0.0.1:8000/get-connectivity?source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dest)}`
+      )
+
+      if (!res.ok) throw new Error("API request failed")
+
+      const data = await res.json()
+
+      setTravelInfo({
+        source_station: data.source_connectivity.station_name,
+        source_distance: data.source_connectivity.distance_to_station,
+        source_walk: data.source_connectivity.walking_time,
+        dest_station: data.destination_connectivity.station_name,
+        dest_distance: data.destination_connectivity.distance_to_station,
+        dest_walk: data.destination_connectivity.walking_time,
+      })
+    } catch (err) {
+      console.error("Route fetch error:", err)
+      setTravelInfo(null)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
-      {/* 1. Added handleCalculateRoute to the Sidebar props */}
       <RouteSidebar
         onCalculate={handleCalculateRoute}
         travelInfo={travelInfo}
+        loading={loading}     
       />
 
       <div className="flex-1 relative">
-        {/* User Profile / Sign Out Overlay */}
-        {/* <div className="absolute top-4 right-4 z-10">
-          <div className="bg-white p-3 rounded-lg shadow-md flex items-center gap-4">
-            <p className="text-sm font-medium">{session?.user?.email}</p>
-            <button
-              onClick={() => signOut()}
-              className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1.5 rounded shadow-sm transition-all"
-            >
-              Logout
-            </button>
-          </div>
-        </div> */}
-
-        {/* 2. Map only receives the "Active" confirmed locations */}
         <Map
           source={activeSource}
           destination={activeDestination}
