@@ -1,24 +1,35 @@
-// app/dashboard/page.tsx (or wherever Dashboard lives)
+// app/dashboard/page.tsx
 "use client"
 
 import { useState } from "react"
-import { useSession, signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 import Map from "@/components/Maps"
 import RouteSidebar from "@/components/RouteSidebar"
+
+interface Train {
+  train_id: string
+  departure: string
+  arrival: string
+  duration: string
+}
+
+interface TravelInfo {
+  current_time: string
+  source_station: string
+  source_distance: string
+  source_walk: string
+  dest_station: string
+  dest_distance: string
+  dest_walk: string
+  trains: Train[]
+}
 
 export default function Dashboard() {
   const { data: session } = useSession()
 
   const [activeSource, setActiveSource] = useState("")
   const [activeDestination, setActiveDestination] = useState("")
-  const [travelInfo, setTravelInfo] = useState<{
-    source_station: string
-    source_distance: string
-    source_walk: string
-    dest_station: string
-    dest_distance: string
-    dest_walk: string
-  } | null>(null)
+  const [travelInfo, setTravelInfo] = useState<TravelInfo | null>(null)
   const [loading, setLoading] = useState(false)
 
   const handleCalculateRoute = async (src: string, dest: string) => {
@@ -37,12 +48,14 @@ export default function Dashboard() {
       const data = await res.json()
 
       setTravelInfo({
-        source_station: data.source_connectivity.station_name,
+        current_time:    data.current_time ?? "",
+        source_station:  data.source_connectivity.station_name,
         source_distance: data.source_connectivity.distance_to_station,
-        source_walk: data.source_connectivity.walking_time,
-        dest_station: data.destination_connectivity.station_name,
-        dest_distance: data.destination_connectivity.distance_to_station,
-        dest_walk: data.destination_connectivity.walking_time,
+        source_walk:     data.source_connectivity.walking_time,
+        dest_station:    data.destination_connectivity.station_name,
+        dest_distance:   data.destination_connectivity.distance_to_station,
+        dest_walk:       data.destination_connectivity.walking_time,
+        trains:          data.trains ?? [],   // ← was being dropped before
       })
     } catch (err) {
       console.error("Route fetch error:", err)
@@ -57,9 +70,8 @@ export default function Dashboard() {
       <RouteSidebar
         onCalculate={handleCalculateRoute}
         travelInfo={travelInfo}
-        loading={loading}     
+        loading={loading}
       />
-
       <div className="flex-1 relative">
         <Map
           source={activeSource}
