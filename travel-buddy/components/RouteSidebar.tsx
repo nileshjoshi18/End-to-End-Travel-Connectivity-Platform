@@ -1,6 +1,7 @@
 // components/RouteSidebar.tsx
 "use client"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 interface Train {
   train_id: string
@@ -29,17 +30,16 @@ interface Props {
 export default function RouteSidebar({ onCalculate, travelInfo, loading }: Props) {
   const [tempSource, setTempSource] = useState("")
   const [tempDestination, setTempDestination] = useState("")
+  const router = useRouter()
 
   return (
     <div className="w-80 h-full bg-white shadow-xl flex flex-col overflow-hidden">
 
-      {/* Header */}
       <div className="bg-blue-700 px-6 py-5">
         <h2 className="text-lg font-bold text-white tracking-wide">Mumbai Local Planner</h2>
         <p className="text-blue-200 text-xs mt-0.5">Find the next trains between stations</p>
       </div>
 
-      {/* Input form */}
       <div className="px-5 py-5 space-y-3 border-b border-gray-100">
         <div>
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">From</label>
@@ -70,11 +70,9 @@ export default function RouteSidebar({ onCalculate, travelInfo, loading }: Props
         </button>
       </div>
 
-      {/* Results */}
       {travelInfo && (
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
-          {/* Station cards */}
           <div className="grid grid-cols-2 gap-2">
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
               <p className="text-[9px] font-bold text-blue-500 uppercase tracking-widest mb-1">Board at</p>
@@ -88,7 +86,6 @@ export default function RouteSidebar({ onCalculate, travelInfo, loading }: Props
             </div>
           </div>
 
-          {/* Train list */}
           {(travelInfo.trains ?? []).length > 0 ? (
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -101,12 +98,18 @@ export default function RouteSidebar({ onCalculate, travelInfo, loading }: Props
                 {travelInfo.trains.map((train, i) => (
                   <div
                     key={train.train_id}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-shadow hover:shadow-sm ${
+                    onClick={() => router.push(`/train/${train.train_id}`)}
+                    className={`relative flex items-center justify-between px-4 py-3 rounded-xl border cursor-pointer transition-all hover:scale-[1.01] hover:shadow-md active:scale-[0.99] ${
                       i === 0
                         ? "bg-blue-600 border-blue-600 text-white"
                         : "bg-gray-50 border-gray-100 text-gray-800"
                     }`}
                   >
+                    {/* Tap hint */}
+                    <span className={`absolute top-2 right-3 text-[9px] font-medium uppercase tracking-widest ${i === 0 ? "text-blue-300" : "text-gray-300"}`}>
+                      details →
+                    </span>
+
                     {/* Left: train ID + departure */}
                     <div>
                       <p className={`text-[10px] font-semibold uppercase tracking-wide ${i === 0 ? "text-blue-200" : "text-gray-400"}`}>

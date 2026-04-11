@@ -47,15 +47,18 @@ export default function Dashboard() {
 
       const data = await res.json()
 
-      setTravelInfo({
-        current_time:    data.current_time ?? "",
-        source_station:  data.source_connectivity.station_name,
-        source_distance: data.source_connectivity.distance_to_station,
-        source_walk:     data.source_connectivity.walking_time,
-        dest_station:    data.destination_connectivity.station_name,
-        dest_distance:   data.destination_connectivity.distance_to_station,
-        dest_walk:       data.destination_connectivity.walking_time,
-        trains:          data.trains ?? [],   // ← was being dropped before
+      setTravelInfo((prev) => {
+        console.log("travelInfo.trains:", data.trains)   // ← add this
+        return {
+          current_time:    data.current_time ?? "",
+          source_station:  data.source_connectivity.station_name,
+          source_distance: data.source_connectivity.distance_to_station,
+          source_walk:     data.source_connectivity.walking_time,
+          dest_station:    data.destination_connectivity.station_name,
+          dest_distance:   data.destination_connectivity.distance_to_station,
+          dest_walk:       data.destination_connectivity.walking_time,
+          trains:          data.trains ?? [],
+        }
       })
     } catch (err) {
       console.error("Route fetch error:", err)

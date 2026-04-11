@@ -50,29 +50,42 @@ def get_station_stop_id(station_name: str) -> str | None:
     Extend this mapping as your network grows.
     """
     NAME_TO_STOP_ID: dict[str, str] = {
-        "Churchgate":          "CHU_WR",
-        "Marine Lines":        "MAR_WR",
-        "Charni Road":         "CHA_WR",
-        "Grant Road":          "GRA_WR",
-        "Mumbai Central":      "MUC_WR",
-        "Mahalaxmi":           "MAH_WR",
-        "Lower Parel":         "LOP_WR",
-        "Prabhadevi":          "PRA_WR",
-        "Dadar":               "DAD_WR",
-        "Matunga Road":        "MAT_WR",
-        "Mahim Junction":      "MAI_WR",
-        "Bandra":              "BAN_WR",
-        "Khar Road":           "KHA_WR",
-        "Santacruz":           "SAN_WR",
-        "Vile Parle":          "VIL_WR",
-        "Andheri":             "AND_WR",
-        "Jogeshwari":          "JOG_WR",
-        "Ram Mandir":          "RAM_WR",
-        "Goregaon":            "GOR_WR",
-        "Malad":               "MAL_WR",
-        "Kandivali":           "KAN_WR",
-        "Borivali":            "BOR_WR",
-        # Add CR / Harbour line stops as needed …
+        # WR Line
+        "Churchgate":           "CHU_WR",
+        "Marine Lines":         "MAR_WR",
+        "Charni Road":          "CHA_WR",
+        "Grant Road":           "GRA_WR",
+        "Mumbai Central":       "MUB_WR",   
+        "Mahalaxmi":            "MAK_WR",   
+        "Mahalakshmi":          "MAK_WR",   
+        "Lower Parel":          "LOW_WR",   
+        "Prabhadevi":           "PRA_WR",
+        "Dadar":                "DAD_WR",
+        "Matunga Road":         "MAT_WR",
+        "Mahim Junction":       "MAH_WR",  
+        "Mahim":                "MAH_WR",
+        "Bandra":               "BAN_WR",
+        "Khar Road":            "KHA_WR",
+        "Santa Cruz":           "SAN_WR",   
+        "Santacruz":            "SAN_WR",
+        "Vile Parle":           "VIL_WR",
+        "Andheri":              "AND_WR",
+        "Jogeshwari":           "JOG_WR",
+        "Ram Mandir":           "RAM_WR",
+        "Goregaon":             "GOR_WR",
+        "Malad":                "MAL_WR",
+        "Kandivali":            "KAN_WR",   
+        "Kandivli":             "KAN_WR",   
+        "Borivali":             "BOR_WR",   
+        "Borivli":              "BOR_WR",   
+        "Dahisar":              "DAH_WR",   
+        "Mira Road":            "MIR_WR",   
+        "Bhayandar":            "BHA_WR",   
+        "Naigaon":              "NAI_WR",   
+        "Vasai Road":           "VAS_WR",   
+        "Nalla Sopara":         "NAL_WR",   
+        "Nalasopara":           "NAL_WR",   
+        "Virar":                "VIR_WR",   
     }
     # Try exact match first, then partial
     if station_name in NAME_TO_STOP_ID:
@@ -132,7 +145,7 @@ def get_nearest_station(address: str) -> dict | None:
     }
 
 
-# ── Endpoint ─────────────────────────────────────────────────────────────────
+#Endpoint
 
 @app.get("/get-connectivity")
 async def get_connectivity(source: str, destination: str):
@@ -141,11 +154,7 @@ async def get_connectivity(source: str, destination: str):
 
     if not start_info or not end_info:
         raise HTTPException(status_code=404, detail="Could not find railway stations for these locations.")
-
-    # Fetch current IST time
     current_time = get_current_ist_time()
-
-    # Look up trains if we have valid stop IDs
     trains = []
     if start_info.get("stop_id") and end_info.get("stop_id"):
         trains = find_trains(start_info["stop_id"], end_info["stop_id"], current_time)
@@ -162,5 +171,5 @@ async def get_connectivity(source: str, destination: str):
             "distance_to_station": end_info["distance_to_station"],
             "walking_time":        end_info["walking_time"],
         },
-        "trains": trains,   # list of {train_id, departure, arrival, duration}
+        "trains": trains,  
     }
