@@ -1,0 +1,7 @@
+major problem faced is if i want to use public transport in an unknown city. lets say i want to visit a friends how in a random city using public transport, i dont know the routes or landmarks to alight at. So i my (current) webapp, i will have to put my departure and arrival address, would be even better if i can see that gmap interface on my website. Next what happens in the backend, gmaps searches for the nearest landmarks/metros/bus stops and matches the landmark with the data that i have curated in my database. Database i not yet ready but vaguely it will have iformation about all the trains station, bus stops, metro stops, the name of the route and the cost. Now my AI will find the most optimum route that might involve least cost and time if public transport is my top priority and even give me a comparative analysis of uber cost with the public transport cost and suggest me a comprehensive route
+
+you need to know my dataset which is based on RDBMS
+route_id shared by routes, route_stops, schedules
+stop_id shared by stops, route_stops, schedules
+route_stops contains stop information for all the route_ids(~90), which includes stop_id, sequence_no of that stop on that route and travel_time_next(although the name contains next, it stores the time taken to travel form the previous stop to the current stop)
+schedule contains the information regarding the starting departure of all trains and their route_id and the departure time.

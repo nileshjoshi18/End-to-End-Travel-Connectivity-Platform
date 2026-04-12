@@ -31,7 +31,7 @@ export default function RouteSidebar({ onCalculate, travelInfo, loading }: Props
   const [tempSource, setTempSource] = useState("")
   const [tempDestination, setTempDestination] = useState("")
   const router = useRouter()
-
+  console.log(travelInfo?.source_station)
   return (
     <div className="w-80 h-full bg-white shadow-xl flex flex-col overflow-hidden">
 

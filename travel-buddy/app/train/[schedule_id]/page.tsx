@@ -19,8 +19,8 @@ interface TrainDetails {
 }
 
 export default function TrainDetailPage() {
-  const params = useParams()                                    // ← no generic, get raw object
-  const schedule_id = Array.isArray(params.schedule_id)        // ← safely unwrap
+  const params = useParams()                                    
+  const schedule_id = Array.isArray(params.schedule_id)        
     ? params.schedule_id[0]
     : params.schedule_id
 
@@ -30,7 +30,7 @@ export default function TrainDetailPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    console.log("schedule_id from params:", schedule_id)       // ← add this temporarily
+    console.log("schedule_id from params:", schedule_id)       
 
     if (!schedule_id) {
       setError("No schedule ID in URL.")
@@ -44,7 +44,7 @@ export default function TrainDetailPage() {
         return r.json()
       })
       .then((data) => {
-        console.log("API response:", data)                     // ← and this
+        console.log("API response:", data)                     
         setDetails(data)
       })
       .catch((e) => {
@@ -54,7 +54,6 @@ export default function TrainDetailPage() {
       .finally(() => setLoading(false))
   }, [schedule_id])
 
-  // ── Loading ──────────────────────────────────────────────
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
       <div className="text-center space-y-3">
@@ -64,7 +63,6 @@ export default function TrainDetailPage() {
     </div>
   )
 
-  // ── Error ────────────────────────────────────────────────
   if (error || !details) return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
       <div className="text-center space-y-4">
@@ -83,8 +81,6 @@ export default function TrainDetailPage() {
   // ── Detail view ──────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* Top bar */}
       <div className="bg-blue-700 px-6 py-4 flex items-center gap-4">
         <button
           onClick={() => router.back()}
@@ -104,8 +100,6 @@ export default function TrainDetailPage() {
           <p className="text-blue-200 text-xs">stops</p>
         </div>
       </div>
-
-      {/* Stop timeline */}
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="relative">
           <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-gray-200" />
