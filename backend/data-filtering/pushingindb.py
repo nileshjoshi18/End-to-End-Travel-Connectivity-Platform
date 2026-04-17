@@ -27,9 +27,9 @@ def push_to_db(file_name, table_name):
 
 # 2. THE CRITICAL ORDER
 # If you haven't already, run 'TRUNCATE TABLE schedules, route_stops, routes, stops CASCADE;' in psql
-push_to_db('stops_table.xlsx', 'stops')          # Foundation
+# push_to_db('stops_table.xlsx', 'stops')          # Foundation
 push_to_db('route_table_1.xlsx', 'routes')         # Parent
-push_to_db('route_stops.xlsx', 'route_stops')   # Child of Routes/Stops
-push_to_db('schedule_table.xlsx', 'schedules')   # Child of Routes/Stops
+push_to_db('route_stops_1.xlsx', 'route_stops')   # Child of Routes/Stops
+push_to_db('schedule_table_1.xlsx', 'schedules')   # Child of Routes/Stops
 
 print("\n🚀 All tables synchronized and pushed to PostgreSQL!")
