@@ -80,6 +80,6 @@ def find_trains(start_stop: str, end_stop: str, user_time_str: str) -> list[dict
 
 
 if __name__ == "__main__":
-    trains = find_trains('CHU_WR', 'GOR_WR', '08:00')
+    trains = find_trains('PAN_HR', 'GOV_HR', '20:00')
     for t in trains:
         print(t)

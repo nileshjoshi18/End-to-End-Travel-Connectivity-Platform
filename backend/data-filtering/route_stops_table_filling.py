@@ -6,7 +6,7 @@ from datetime import datetime
 # ============================================================
 # STEP 1: Load & Flatten
 # ============================================================
-df_main = pd.read_excel('westernline_fromvir_up_merged.xlsx', header=[0, 1])
+df_main = pd.read_excel('merged_output.xlsx', header=[0, 1])
 df_stops = pd.read_excel('stops_table.xlsx')
 
 df_stops.columns = df_stops.columns.str.strip()
@@ -20,10 +20,10 @@ df_main.columns = [
 station_col = df_main.columns[0]
 train_cols = [c for c in df_main.columns if c != station_col]
 
-# ============================================================
+
 # STEP 2: Drop rows where station name is blank/nan
 # (This was silently happening in route_table_1.py but not here)
-# ============================================================
+
 df_main = df_main[df_main[station_col].astype(str).str.strip().str.lower() != 'nan']
 df_main = df_main[df_main[station_col].astype(str).str.strip() != '']
 df_main = df_main.reset_index(drop=True)
@@ -33,9 +33,9 @@ stations = df_main[station_col].astype(str).str.strip().str.upper().tolist()
 print(f"✅ Station count after cleaning: {len(stations)}")
 print(f"   First: {stations[0]} | Last: {stations[-1]}")
 
-# ============================================================
+
 # STEP 3: Shared pattern builder (single source of truth)
-# ============================================================
+
 def build_pattern(col_data, col_name):
     pattern = tuple([
         1 if bool(re.match(r'^\d{1,2}:\d{2}$', str(val).strip())) else 0
@@ -54,11 +54,11 @@ def build_pattern(col_data, col_name):
     suffix = 'AC' if is_ac else ('FT' if is_fast else 'OR')
     return pattern, suffix
 
-# ============================================================
+
 # STEP 4: Build Route Table
-# ============================================================
+
 route_map = {}       # (pattern_str, suffix) -> route_id
-route_counter = 91
+route_counter = 156
 unique_routes = []
 
 for col in train_cols:
@@ -68,7 +68,7 @@ for col in train_cols:
 
     key = (str(pattern), suffix)
     if key not in route_map:
-        route_id = f'WRTR{str(route_counter).zfill(4)}{suffix}'
+        route_id = f'HRTR{str(route_counter).zfill(4)}{suffix}'
         route_map[key] = route_id
         route_counter += 1
 
@@ -84,12 +84,12 @@ for col in train_cols:
         })
 
 routes_df = pd.DataFrame(unique_routes)
-routes_df.to_excel('route_table_1.xlsx', index=False)
+routes_df.to_excel('route_table_2.xlsx', index=False)
 print(f"✅ Route table: {len(routes_df)} unique routes → route_table_1.xlsx")
 
-# ============================================================
+
 # STEP 5: Build Route Stops Table
-# ============================================================
+
 def get_minutes_diff(curr_str, prev_str):
     try:
         fmt = '%H:%M'
@@ -147,9 +147,9 @@ for col in train_cols:
     processed_route_ids.add(r_id)
 
 output_df = pd.DataFrame(all_stop_rows)
-output_df.to_excel('route_stops_1.xlsx', index=False)
+output_df.to_excel('route_stops_2.xlsx', index=False)
 
-print(f"✅ Route stops: {len(output_df)} rows → route_stops_1.xlsx")
+print(f"✅ Route stops: {len(output_df)} rows → route_stops_2.xlsx")
 print(output_df[['route_stop_id', 'route_id', 'sequence_no']].head(10))
 
 if missing_stops:

@@ -1,35 +1,48 @@
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.dialects.postgresql import insert
 
-# 1. Database Connection
-# Adjust 'postgres:postgres' if you changed your password
 engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
+metadata = MetaData()
 
 def push_to_db(file_name, table_name):
     print(f"--- Processing {table_name} ---")
     try:
         df = pd.read_excel(file_name)
         
-        # Use chunksize=100 and method='multi' to avoid parameter limit errors
-        df.to_sql(
-            table_name, 
-            engine, 
-            if_exists='append', 
-            index=False, 
-            chunksize=100, 
-            method='multi'
-        )
-        print(f"✅ Successfully pushed {len(df)} rows to {table_name}.")
+        # Replace NaN with None so PostgreSQL gets NULL not 'nan'
+        df = df.where(pd.notna(df), None)
+        
+        records = df.to_dict(orient="records")
+        if not records:
+            print(f"⚠️  No records in {file_name}, skipping.")
+            return
+
+        # Reflect the table structure from DB
+        table = Table(table_name, metadata, autoload_with=engine)
+
+        # Push in chunks of 100 to avoid parameter limits
+        chunk_size = 100
+        total_inserted = 0
+
+        with engine.begin() as conn:
+            for i in range(0, len(records), chunk_size):
+                chunk = records[i:i + chunk_size]
+                stmt = insert(table).values(chunk)
+                stmt = stmt.on_conflict_do_nothing()  # skip duplicates silently
+                conn.execute(stmt)
+                total_inserted += len(chunk)
+
+        print(f"✅ Processed {total_inserted} rows into {table_name} (duplicates skipped).")
+
     except Exception as e:
         print(f"❌ Error pushing to {table_name}: {e}")
-        # Stop the script if a parent table fails
         exit()
 
-# 2. THE CRITICAL ORDER
-# If you haven't already, run 'TRUNCATE TABLE schedules, route_stops, routes, stops CASCADE;' in psql
-# push_to_db('stops_table.xlsx', 'stops')          # Foundation
-push_to_db('route_table_1.xlsx', 'routes')         # Parent
-push_to_db('route_stops_1.xlsx', 'route_stops')   # Child of Routes/Stops
-push_to_db('schedule_table_1.xlsx', 'schedules')   # Child of Routes/Stops
+# Run in dependency order
+# push_to_db('stops_table.xlsx',     'stops')
+# push_to_db('route_table_2.xlsx',   'routes')
+# push_to_db('route_stops_2.xlsx',   'route_stops')
+push_to_db('schedule_table_2.xlsx','schedules')
 
-print("\n🚀 All tables synchronized and pushed to PostgreSQL!")
+print("\n🚀 All tables synchronized!")

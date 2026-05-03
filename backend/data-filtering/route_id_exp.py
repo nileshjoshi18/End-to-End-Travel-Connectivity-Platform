@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 
-df = pd.read_excel('westernline_fromvir_up_merged.xlsx', header=[0, 1])
+df = pd.read_excel('merged_output.xlsx', header=[0, 1])
 
 # Unified Flattening
 df.columns = [f'{str(a).strip()}_{str(b).strip()}' if 'Unnamed' not in str(b) else str(a).strip() for a, b in df.columns]
@@ -27,7 +27,7 @@ def get_logic_data(col_data, col_name):
     return pattern, suffix
 
 route_map = {}
-route_counter = 91
+route_counter = 156
 unique_routes = []
 
 for col in train_cols:
@@ -51,5 +51,5 @@ for col in train_cols:
             'pattern_key': str(pattern) 
         })
 
-pd.DataFrame(unique_routes).to_excel('route_table_1.xlsx', index=False)
-print(f"✅ Created {len(unique_routes)} unique routes in route_table_1.xlsx")
+pd.DataFrame(unique_routes).to_excel('route_table_2.xlsx', index=False)
+print(f"✅ Created {len(unique_routes)} unique routes in route_table_2.xlsx")
