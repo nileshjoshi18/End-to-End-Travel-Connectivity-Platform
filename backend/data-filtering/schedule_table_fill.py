@@ -2,7 +2,7 @@ import pandas as pd
 import re
 
 # Load all
-df_main = pd.read_excel('merged_output.xlsx', header=[0, 1])
+df_main = pd.read_excel('habourline_frompanv_up.xlsx', header=[0, 1])
 df_routes = pd.read_excel('route_table_2.xlsx')
 df_stops = pd.read_excel('stops_table.xlsx')
 
@@ -46,7 +46,7 @@ for col in train_cols:
         start_idx = pattern.index(1)
         
         schedule_rows.append({
-            'schedule_id': f"WRSCH_{train_no}",
+            'schedule_id': f"HRSPV_{train_no}",
             'route_id': r_id,
             'stop_id': stop_map.get(stations[start_idx]),
             'departure_time': str(df_main[col].iloc[start_idx]).strip(),
