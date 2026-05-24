@@ -5,14 +5,12 @@ import googlemaps
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
 # Import the train-finding logic
 from logic_test import find_trains
-
+from stationname_resolver import resolve_stop_id
 load_dotenv()
 
 app = FastAPI()
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -45,98 +43,7 @@ def get_current_ist_time() -> str:
 
 
 def get_station_stop_id(station_name: str) -> str | None:
-    """
-    Map a Google Places station name to your DB stop_id.
-    Extend this mapping as your network grows.
-    """
-    NAME_TO_STOP_ID: dict[str, str] = {
-        # ── WR Line ────────────────────────────────────────────
-        "Churchgate":           "CHU_WR",
-        "Marine Lines":         "MAR_WR",
-        "Charni Road":          "CHA_WR",
-        "Grant Road":           "GRA_WR",
-        "Mumbai Central":       "MUB_WR",
-        "Mahalaxmi":            "MAK_WR",
-        "Mahalakshmi":          "MAK_WR",
-        "Lower Parel":          "LOW_WR",
-        "Prabhadevi":           "PRA_WR",
-        "Dadar":                "DAD_WR",
-        "Matunga Road":         "MAT_WR",
-        "Mahim Junction":       "MAH_WR",
-        "Mahim":                "MAH_WR",
-        "Bandra":               "BAN_WR",
-        "Khar Road":            "KHA_WR",
-        "Santa Cruz":           "SAN_WR",
-        "Santacruz":            "SAN_WR",
-        "Vile Parle":           "VIL_WR",
-        "Andheri":              "AND_WR",
-        "Jogeshwari":           "JOG_WR",
-        "Ram Mandir":           "RAM_WR",
-        "Goregaon":             "GOR_WR",
-        "Malad":                "MAL_WR",
-        "Kandivali":            "KAN_WR",
-        "Kandivli":             "KAN_WR",
-        "Borivali":             "BOR_WR",
-        "Borivli":              "BOR_WR",
-        "Dahisar":              "DAH_WR",
-        "Mira Road":            "MIR_WR",
-        "Bhayandar":            "BHA_WR",
-        "Naigaon":              "NAI_WR",
-        "Vasai Road":           "VAS_WR",
-        "Nalla Sopara":         "NAL_WR",
-        "Nalasopara":           "NAL_WR",
-        "Virar":                "VIR_WR",
-        "Panvel":                           "PAN_HR",
-        "Khandeshwar":                      "KAN_HR",
-        "Mansarovar":                       "MAN_HR",
-        "Kharghar":                         "KAG_HR",
-        "Belapur CBD":                      "BEL_HR",
-        "CBD Belapur":                      "BEL_HR",
-        "Seawood Darave":                   "SWD_HR",
-        "Seawoods - Darave":                "SWD_HR",
-        "Nerul":                            "NER_HR",
-        "Juinagar":                         "JUI_HR",
-        "Sanpada":                          "SAN_HR",
-        "Vashi":                            "VAS_HR",
-        "Mankhurd":                         "MNK_HR",   # fix after DB update
-        "Govandi":                          "GOV_HR",
-        "Chembur":                          "CHEM_HR",
-        "Tilaknagar":                       "TIK_HR",
-        "Tilak Nagar":                      "TIK_HR",
-        "Kurla":                            "KUR_HR",
-        "Chunabhatti":                      "CBH_HR",
-        "GTB Nagar":                        "GTB_HR",
-        "Ramnagar":                         "RAM_HR",
-        "Vileparle":                        "VPR_HR",
-        "Vile Parle Harbour":               "VPR_HR",
-        "Santacruz Harbour":                "STZ_HR",
-        "Khar Road Harbour":                "KHR_HR",
-        "Bandra Harbour":                   "BAN_HR",
-        "Mahim Jn":                         "MAH_HR",
-        "Mahim Junction Harbour":           "MAH_HR",
-        "King's Circle":                    "KCI_HR",
-        "Kings Circle":                     "KCI_HR",
-        "Vadala Road":                      "VAD_HR",
-        "Wadala Road":                      "VAD_HR",
-        "Sewri":                            "SEW_HR",
-        "Cotton Green":                     "CGR_HR",
-        "Reay Road":                        "RRD_HR",
-        "Dockyard Road":                    "DOC_HR",
-        "Sandhurst Road":                   "SRD_HR",
-        "Masjid":                           "MAS_HR",
-        "Mumbai CSMT":                      "CST_HR",
-        "Chhatrapati Shivaji Maharaj Terminus": "CST_HR",
-        "Chhatrapati Shivaji Terminus":     "CST_HR",
-        "CSMT":                             "CST_HR",
-        "CST":                              "CST_HR",
-    }
-    # Try exact match first, then partial
-    if station_name in NAME_TO_STOP_ID:
-        return NAME_TO_STOP_ID[station_name]
-    for key, val in NAME_TO_STOP_ID.items():
-        if key.lower() in station_name.lower() or station_name.lower() in key.lower():
-            return val
-    return None
+    return resolve_stop_id(station_name)
 
 
 def get_nearest_station(address: str) -> dict | None:
