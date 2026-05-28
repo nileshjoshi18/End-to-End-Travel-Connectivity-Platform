@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 # Read MORE header rows to capture multi-row headers like "Air\nCondition"
-df_raw = pd.read_excel('merged_output.xlsx', header=None)
+df_raw = pd.read_excel('harbourline_fromcst_dn.xlsx', header=None)
 
 # ✅ Find where the actual time data starts by detecting first HH:MM pattern
 def find_header_rows(df_raw):
@@ -95,5 +95,5 @@ for col in train_cols:
             'pattern_key': str(pattern)
         })
 
-pd.DataFrame(unique_routes).to_excel('route_table_2_ex.xlsx', index=False)
-print(f"✅ Created {len(unique_routes)} unique routes in route_table_1.xlsx")
+pd.DataFrame(unique_routes).to_excel('route_table_3.xlsx', index=False)
+print(f"✅ Created {len(unique_routes)} unique routes in route_table_3.xlsx")

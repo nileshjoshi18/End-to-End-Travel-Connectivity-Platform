@@ -72,3 +72,7 @@ def get_train_details(schedule_id: str):
         "total_stops":      len(stop_schedule),
         "stops":            stop_schedule,
     }
+if __name__ == "__main__":
+    trains = get_train_details('HRSPV_98072')
+    for t in trains['stops']:
+        print(t)

@@ -24,9 +24,6 @@ if not API_KEY:
 
 gmaps = googlemaps.Client(key=API_KEY)
 
-
-# ── Helpers ──────────────────────────────────────────────────────────────────
-
 def get_current_ist_time() -> str:
     """Fetch current IST time from WorldTimeAPI and return as HH:MM string."""
     try:
@@ -101,8 +98,8 @@ def get_nearest_station(address: str) -> dict | None:
 async def get_connectivity(source: str, destination: str):
     start_info = get_nearest_station(source)
     end_info   = get_nearest_station(destination)
-    print(f"DEBUG source: name='{start_info.get('station_name')}' stop_id='{start_info.get('stop_id')}'")
-    print(f"DEBUG dest:   name='{end_info.get('station_name')}'   stop_id='{end_info.get('stop_id')}'") 
+    print(f"source: name='{start_info.get('station_name')}' stop_id='{start_info.get('stop_id')}'")
+    print(f"dest:   name='{end_info.get('station_name')}'   stop_id='{end_info.get('stop_id')}'") 
     if not start_info or not end_info:
         raise HTTPException(status_code=404, detail="Could not find railway stations for these locations.")
     current_time = get_current_ist_time()

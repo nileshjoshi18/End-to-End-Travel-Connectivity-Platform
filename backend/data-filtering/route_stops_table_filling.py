@@ -6,7 +6,7 @@ from datetime import datetime
 # ============================================================
 # STEP 1: Load & Flatten
 # ============================================================
-df_main = pd.read_excel('habourline_frompanv_up.xlsx', header=[0, 1])
+df_main = pd.read_excel('harbourline_fromcst_dn.xlsx', header=[0, 1])
 df_stops = pd.read_excel('stops_table.xlsx')
 
 df_stops.columns = df_stops.columns.str.strip()
@@ -58,7 +58,7 @@ def build_pattern(col_data, col_name):
 # STEP 4: Build Route Table
 
 route_map = {}       # (pattern_str, suffix) -> route_id
-route_counter = 156
+route_counter = 174
 unique_routes = []
 
 for col in train_cols:
@@ -84,7 +84,7 @@ for col in train_cols:
         })
 
 routes_df = pd.DataFrame(unique_routes)
-routes_df.to_excel('route_table_2_1.xlsx', index=False)
+routes_df.to_excel('route_table_3_1.xlsx', index=False)
 print(f"✅ Route table: {len(routes_df)} unique routes → route_table_1.xlsx")
 
 
@@ -147,12 +147,12 @@ for col in train_cols:
     processed_route_ids.add(r_id)
 
 output_df = pd.DataFrame(all_stop_rows)
-output_df.to_excel('route_stops_2_1.xlsx', index=False)
+output_df.to_excel('route_stops_3.xlsx', index=False)
 
-print(f"✅ Route stops: {len(output_df)} rows → route_stops_2.xlsx")
+print(f"✅ Route stops: {len(output_df)} rows → route_stops_3.xlsx")
 print(output_df[['route_stop_id', 'route_id', 'sequence_no']].head(10))
 
 if missing_stops:
-    print(f"\n⚠️  {len(missing_stops)} station(s) not found in stops_table.xlsx:")
+    print(f"\n  {len(missing_stops)} station(s) not found in stops_table.xlsx:")
     for s in sorted(missing_stops):
         print(f"   - {s}")

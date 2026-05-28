@@ -2,8 +2,8 @@ import pandas as pd
 import re
 
 # Load all
-df_main = pd.read_excel('habourline_frompanv_up.xlsx', header=[0, 1])
-df_routes = pd.read_excel('route_table_2.xlsx')
+df_main = pd.read_excel('harbourline_fromcst_dn.xlsx', header=[0, 1])
+df_routes = pd.read_excel('route_table_3.xlsx')
 df_stops = pd.read_excel('stops_table.xlsx')
 
 # Clean stops (Use the MX_WR fix if you applied it)
@@ -53,5 +53,5 @@ for col in train_cols:
             'days_of_week': 7 # Modify if you have Sunday logic
         })
 
-pd.DataFrame(schedule_rows).to_excel('schedule_table_2.xlsx', index=False)
+pd.DataFrame(schedule_rows).to_excel('schedule_table_3.xlsx', index=False)
 print(f"Generated {len(schedule_rows)} schedules.")
