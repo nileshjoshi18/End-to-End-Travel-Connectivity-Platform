@@ -53,9 +53,7 @@ export default function Dashboard() {
         return
       }
 
-      // ── Step 2: Fallback — try multi-line resultant routes ────────────────
-      // We need stop IDs; re-use what the connectivity endpoint gave us.
-      // The /resultant-routes endpoint accepts stop names directly.
+      // ── Step 2: Fallback — try multi-line resultant routes 
       const srcStation  = data.source_connectivity?.station_name
       const destStation = data.destination_connectivity?.station_name
 
@@ -67,7 +65,7 @@ export default function Dashboard() {
       const currentTime = data.current_time || new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })
 
       const multiRes = await fetch(
-        `http://127.0.0.1:8000/resultant-routes?start_stop=${encodeURIComponent(srcStation)}&end_stop=${encodeURIComponent(destStation)}&user_time=${encodeURIComponent(currentTime)}`
+        `http://127.0.0.1:8002/resultant-routes?start_stop=${encodeURIComponent(srcStation)}&end_stop=${encodeURIComponent(destStation)}&user_time=${encodeURIComponent(currentTime)}`
       )
 
       if (!multiRes.ok) {
