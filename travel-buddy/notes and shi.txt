@@ -1,2 +1,13 @@
-gBLAuPX60fuZEs30
-mongo atlas password : wq6yPZzXLnDNv3vP
+1.metro lines, central line, uber, fares pricing 
+2.djikstras, ai int(using langchain/langraph)
+3.maps and nearby viscinitiy api vhange from google api
+4.redis caching
+5.Dockerizing
+6.deployment
+7.post deployment CI/CD pipeline
+8.voice enabling/handicap friendliness
+9.mobile friendly UI/ app?
+backend api activation
+uvicorn nearest_station:app --reload
+uvicorn routing_results:app --reload --port 8002
+uvicorn train_details:app --reload --port 8001

@@ -3,7 +3,7 @@ import pandas as pd
 import re
 
 # Read MORE header rows to capture multi-row headers like "Air\nCondition"
-df_raw = pd.read_excel('harbourline_fromcst_dn.xlsx', header=None)
+df_raw = pd.read_excel('metroline1_fromghatkopar.xlsx', header=None)
 
 # ✅ Find where the actual time data starts by detecting first HH:MM pattern
 def find_header_rows(df_raw):
@@ -70,7 +70,7 @@ def get_logic_data(col_data, col_name):
 
 
 route_map = {}
-route_counter = 156
+route_counter = 10
 unique_routes = []
 
 for col in train_cols:
@@ -80,7 +80,7 @@ for col in train_cols:
 
     key = (str(pattern), suffix)
     if key not in route_map:
-        route_id = f'WRTR{str(route_counter).zfill(4)}{suffix}'
+        route_id = f'MET1{str(route_counter).zfill(4)}{suffix}'
         route_map[key] = route_id
         route_counter += 1
 
@@ -90,10 +90,10 @@ for col in train_cols:
         unique_routes.append({
             'route_id': route_id,
             'name': r_name,
-            'mode': 'LOCALTR',
+            'mode': 'METRO',
             'is_active': True,
             'pattern_key': str(pattern)
         })
 
-pd.DataFrame(unique_routes).to_excel('route_table_3.xlsx', index=False)
-print(f"✅ Created {len(unique_routes)} unique routes in route_table_3.xlsx")
+pd.DataFrame(unique_routes).to_excel('route_table_4.xlsx', index=False)
+print(f"✅ Created {len(unique_routes)} unique routes in route_table_4.xlsx")

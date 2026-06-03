@@ -1,7 +1,7 @@
 import pandas as pd
 import re
 
-df = pd.read_excel('harbourline_fromcst_dn.xlsx', header=[0, 1])
+df = pd.read_excel('metroline1_fromghatkopar.xlsx', header=[0, 1])
 
 # Unified Flattening
 df.columns = [f'{str(a).strip()}_{str(b).strip()}' if 'Unnamed' not in str(b) else str(a).strip() for a, b in df.columns]
@@ -27,7 +27,7 @@ def get_logic_data(col_data, col_name):
     return pattern, suffix
 
 route_map = {}
-route_counter = 156
+route_counter = 10
 unique_routes = []
 
 for col in train_cols:
@@ -46,10 +46,10 @@ for col in train_cols:
         unique_routes.append({
             'route_id': route_id,
             'name': r_name,
-            'mode': 'LOCALTR',
+            'mode': 'METRO',
             'is_active': True,
             'pattern_key': str(pattern) 
         })
 
-pd.DataFrame(unique_routes).to_excel('route_table_3_1.xlsx', index=False)
+pd.DataFrame(unique_routes).to_excel('route_tableEXP.xlsx', index=False)
 print(f"✅ Created {len(unique_routes)} unique routes in route_table_3.xlsx")

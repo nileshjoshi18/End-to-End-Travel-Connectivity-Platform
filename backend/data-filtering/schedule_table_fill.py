@@ -2,8 +2,8 @@ import pandas as pd
 import re
 
 # Load all
-df_main = pd.read_excel('harbourline_fromcst_dn.xlsx', header=[0, 1])
-df_routes = pd.read_excel('route_table_3.xlsx')
+df_main = pd.read_excel('centralline_fromkasara_up.xlsx', header=[0, 1])
+df_routes = pd.read_excel('route_table_6.xlsx')
 df_stops = pd.read_excel('stops_table.xlsx')
 
 # Clean stops (Use the MX_WR fix if you applied it)
@@ -23,7 +23,7 @@ for _, row in df_routes.iterrows():
 
 schedule_rows = []
 train_cols = [c for c in df_main.columns if c != df_main.columns[0]]
-
+print(train_cols)
 for col in train_cols:
     # Use the EXACT same logic as script 1
     pattern = tuple([1 if bool(re.match(r'^\d{2}:\d{2}$', str(val).strip())) else 0 for val in df_main[col]])
@@ -46,12 +46,12 @@ for col in train_cols:
         start_idx = pattern.index(1)
         
         schedule_rows.append({
-            'schedule_id': f"HRSPV_{train_no}",
+            'schedule_id': f"CRSPV_{train_no}",
             'route_id': r_id,
             'stop_id': stop_map.get(stations[start_idx]),
             'departure_time': str(df_main[col].iloc[start_idx]).strip(),
             'days_of_week': 7 # Modify if you have Sunday logic
         })
 
-pd.DataFrame(schedule_rows).to_excel('schedule_table_3.xlsx', index=False)
+pd.DataFrame(schedule_rows).to_excel('schedule_table_6.xlsx', index=False)
 print(f"Generated {len(schedule_rows)} schedules.")

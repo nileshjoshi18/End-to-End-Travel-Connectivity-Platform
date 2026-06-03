@@ -41,8 +41,8 @@ def push_to_db(file_name, table_name):
 
 # Run in dependency order
 # push_to_db('stops_table.xlsx',     'stops')
-push_to_db('route_table_3.xlsx',   'routes')
-push_to_db('route_stops_3.xlsx',   'route_stops')
-push_to_db('schedule_table_3.xlsx','schedules')
+push_to_db('route_table_6.xlsx',   'routes')
+push_to_db('route_stops_6.xlsx',   'route_stops')
+push_to_db('schedule_table_6.xlsx',   'schedules')
 
 print("\n🚀 All tables synchronized!")
