@@ -3,8 +3,6 @@ import pandas as pd
 from sqlalchemy import create_engine
 engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
 def get_minutes(t) -> int:
     if t is None: return 0
     if hasattr(t, 'hour'):
@@ -18,7 +16,7 @@ def get_minutes(t) -> int:
 def fmt(mins: int) -> str:
     return f"{int((mins % 1440) // 60):02d}:{int(mins % 60):02d}"
 
-# ── find_trains ───────────────────────────────────────────────────────────────
+# find_trains
 
 def find_trains(start_stop: str, end_stop: str, user_time_str: str) -> list[dict]:
     df_route_stops = pd.read_sql(
@@ -61,16 +59,11 @@ def find_trains(start_stop: str, end_stop: str, user_time_str: str) -> list[dict
 
     df_final[['stop_dep_mins', 'arrival_mins']] = df_final.apply(calc_times, axis=1)
 
-    # ── Midnight fix ──────────────────────────────────────────────────────────
-    # A train whose stop_dep_mins < user_mins might still be valid if it wraps
-    # into the next day (e.g. user_time=23:30, train departs at 00:05 next day).
-    # Shift such trains forward by 1440 so the >= comparison works correctly.
     df_final['stop_dep_mins_adj'] = df_final['stop_dep_mins'].where(
         df_final['stop_dep_mins'] >= user_mins,
         df_final['stop_dep_mins'] + 1440,
     )
 
-    # Only keep trains that are reachable (adjusted dep >= user_mins)
     df_filtered = df_final[df_final['stop_dep_mins_adj'] >= user_mins].copy()
 
     if df_filtered.empty:
@@ -88,7 +81,6 @@ def find_trains(start_stop: str, end_stop: str, user_time_str: str) -> list[dict
         for _, row in result.iterrows()
     ]
 
-# ── changeover_routes ─────────────────────────────────────────────────────────
 
 def _get_line(stop_id: str) -> str:
     """Extract line code from stop_id, e.g. 'GOR_WR' -> 'WR'."""
@@ -115,11 +107,9 @@ def changeover_routes(start_stop: str, end_stop: str) -> list[list[dict]]:
     start_line = _get_line(start_stop)
     end_line   = _get_line(end_stop)
 
-    # ── Direct route (same line) ──────────────────────────────────────────────
     if start_line == end_line:
         return [[{'from_stop': start_stop, 'to_stop': end_stop, 'line': start_line}]]
 
-    # ── Find interchange stops between two lines ──────────────────────────────
     def interchange_stops(line_a: str, line_b: str) -> list[str]:
         """
         Return stop_ids on line_a that have a corresponding stop on line_b
@@ -131,7 +121,6 @@ def changeover_routes(start_stop: str, end_stop: str) -> list[list[dict]]:
         prefixes_b = {s.rsplit('_', 1)[0] for s in stops_b}
         return [s for s in stops_a if s.rsplit('_', 1)[0] in prefixes_b]
 
-    # ── Single changeover ─────────────────────────────────────────────────────
     routes = []
     direct_interchanges = interchange_stops(start_line, end_line)
 
@@ -146,8 +135,6 @@ def changeover_routes(start_stop: str, end_stop: str) -> list[list[dict]]:
     if routes:
         return routes
 
-    # ── Two changeovers (via intermediate line) ────────────────────────────────
-    # Find all lines that connect start_line -> mid_line -> end_line
     all_lines = df_route_stops['stop_id'].str.split('_').str[-1].unique().tolist()
 
     for mid_line in all_lines:
@@ -176,7 +163,7 @@ def changeover_routes(start_stop: str, end_stop: str) -> list[list[dict]]:
     return routes
 
 
-# ── Smoke test ────────────────────────────────────────────────────────────────
+
 
 if __name__ == "__main__":
     trains = find_trains('PAN_HR', 'CST_HR', '10:00')

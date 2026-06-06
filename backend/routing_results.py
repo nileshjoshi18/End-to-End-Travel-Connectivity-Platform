@@ -5,6 +5,9 @@ from nearest_station import get_nearest_station
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine
+
+engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
 
 app = FastAPI()
 app.add_middleware(
@@ -22,10 +25,31 @@ def minutes_to_time(mins: int) -> str:
     mins = mins % 1440
     return f"{mins // 60:02d}:{mins % 60:02d}"
 
-@app.get("/resultant-routes")
-def resultant_routes(start_stop: str, end_stop: str, user_time: str):
+def fare(route_legs: list):
+    costs_by_sequence = [[0,3,5],[4,8,10],[9,15,15],[16,21,20],[22,30,25],[31,40,30]]
+    costs_per_leg = []
+    # print(route_legs)
+    for leg in route_legs:
+        leg_source = leg['from_stop']
+        leg_destination = leg['to_stop']
+        leg_stops_list = leg['train_details']['stops']
+        for leg_stops in leg_stops_list:
+            if leg_stops['stop_id'] == leg_source:
+                src_sequence = leg_stops['sequence_no']
 
-    # ── 1. Resolve addresses to stop IDs ─────────────────────────────────────
+            elif leg_stops['stop_id'] == leg_destination:
+                des_sequence = leg_stops['sequence_no']
+                break
+        counts = des_sequence-src_sequence
+        for list_cost_by_sequence in costs_by_sequence:
+            if(counts <= list_cost_by_sequence[1]):
+                costs_per_leg.append(list_cost_by_sequence[2])
+                break
+    return costs_per_leg
+
+@app.get("/resultant-routes")
+async def resultant_routes(start_stop: str, end_stop: str, user_time: str):
+
     start_info = get_nearest_station(start_stop)
     end_info   = get_nearest_station(end_stop)
 
@@ -38,13 +62,11 @@ def resultant_routes(start_stop: str, end_stop: str, user_time: str):
     if not start_stop or not end_stop:
         raise HTTPException(status_code=404, detail=f"No stop ID found for one or both stations.")
 
-    # ── 2. Find all possible routes ───────────────────────────────────────────
     routes = changeover_routes(start_stop, end_stop)
 
     if not routes:
         raise HTTPException(status_code=404, detail="No routes found between these stops.")
 
-    # ── 3. Find the best viable route ─────────────────────────────────────────
     start_minutes = time_to_minutes(user_time)
     viable_routes = []
 
@@ -52,18 +74,14 @@ def resultant_routes(start_stop: str, end_stop: str, user_time: str):
         current_minutes  = start_minutes
         full_route_valid = True
         legs_detail      = []
-
         for leg in route:
             src  = leg['from_stop']
             dest = leg['to_stop']
             line = leg['line']
-
             trains = find_trains(src, dest, minutes_to_time(current_minutes))
-
             if not trains:
                 full_route_valid = False
                 break
-
             train = trains[0]
 
             dep_mins = time_to_minutes(train['departure'])
@@ -88,10 +106,8 @@ def resultant_routes(start_stop: str, end_stop: str, user_time: str):
     viable_routes.sort(key=lambda x: x[0])
     best_arrival, best_legs = viable_routes[0]
 
-    # ── 4. Build response — call DB logic directly, not the HTTP handler ──────
     legs_response = []
     for train, leg, abs_dep, abs_arr in best_legs:
-        # Call the underlying DB function, not the FastAPI endpoint
         try:
             details = get_train_details(train['train_id'])
         except HTTPException:
@@ -106,7 +122,7 @@ def resultant_routes(start_stop: str, end_stop: str, user_time: str):
             "arrival":       minutes_to_time(abs_arr),
             "train_details": details,
         })
-
+    fare_list = fare(legs_response)
     return {
         "start_stop":     start_stop,
         "end_stop":       end_stop,
@@ -115,11 +131,12 @@ def resultant_routes(start_stop: str, end_stop: str, user_time: str):
         "requested_time": user_time,
         "final_arrival":  minutes_to_time(best_arrival),
         "legs":           legs_response,
+        "leg_fares":      fare_list,
     }
 
 
 if __name__ == "__main__":
-    # Pass real addresses, not stop IDs — get_nearest_station geocodes them
-    result = resultant_routes("Virar Station, Mumbai", "Panvel Station, Mumbai", "20:00")
-    for leg in result["legs"]:
-        print(f"{leg['from_stop']} -> {leg['to_stop']} | {leg['departure']} -> {leg['arrival']}")
+    import asyncio
+    # FIX: resultant_routes is async — must be awaited
+    result = asyncio.run(resultant_routes("dav public school, nerul", "virar station", "20:00"))
+    print(result)

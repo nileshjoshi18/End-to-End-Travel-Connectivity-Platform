@@ -27,7 +27,7 @@ def resolve_stop_id(google_maps_name: str) -> str | None:
 
     stops_csv = get_all_stops()
     prompt = f"""You are a Mumbai public transport expert.
-A user is searching for a station and Google Maps returned this name: "{google_maps_name}"
+A user is searching for a station or metro station and Google Maps returned this name: "{google_maps_name}"
 
 Below is a CSV of all known stops in our database:
 {stops_csv}
@@ -38,6 +38,7 @@ Rules:
 - Match by name similarity, common abbreviations, and local knowledge
 - "CSMT", "CST", "Chhatrapati Shivaji Terminus" all refer to CST_HR
 - "Churchgate" refers to CHU_WR
+- If its a metro station like Versova, the stop_id would be VER_MLN1 as mentioned in the csv.
 - If a name matches both WR and HR station (e.g. Bandra, Dadar), prefer WR
 - If no reasonable match exists, return null
 

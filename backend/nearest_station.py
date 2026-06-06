@@ -42,7 +42,6 @@ def get_current_ist_time() -> str:
 def get_station_stop_id(station_name: str) -> str | None:
     return resolve_stop_id(station_name)
 
-
 def get_nearest_station(address: str) -> dict | None:
     geocode_result = gmaps.geocode(address)
     if not geocode_result:
@@ -50,28 +49,51 @@ def get_nearest_station(address: str) -> dict | None:
 
     location = geocode_result[0]['geometry']['location']
 
-    places_result = gmaps.places_nearby(location=location, rank_by='distance', type='train_station')
-    if not places_result.get('results'):
-        places_result = gmaps.places_nearby(location=location, rank_by='distance', type='transit_station')
-    if not places_result.get('results'):
+    EXCLUDE_WORDS = ["bus", "hq", "headquarter", "hospital", "monorail", "taxi"]
+
+    # ✅ Two separate calls — one for train, one for metro
+    all_results = []
+    for station_type in ['train_station', 'metro_station']:
+        result = gmaps.places_nearby(
+            location=location,
+            radius=6000,
+            type=station_type
+        )
+        if result.get('results'):
+            all_results.extend(result['results'])
+
+    if not all_results:
         return None
 
-    EXCLUDE_WORDS = ["bus", "hq", "headquarter", "hospital", "metro", "monorail", "taxi"]
+    # Deduplicate by place_id
+    seen = set()
+    unique_stations = []
+    for p in all_results:
+        if p['place_id'] not in seen:
+            seen.add(p['place_id'])
+            unique_stations.append(p)
+
     rail_stations = [
-        p for p in places_result['results']
+        p for p in unique_stations
         if not any(x in p['name'].lower() for x in EXCLUDE_WORDS)
-    ][:5]
+    ]
 
     if not rail_stations:
         return None
+    candidates = rail_stations[:10]
+    destinations = [s['geometry']['location'] for s in candidates]
 
-    destinations = [s['geometry']['location'] for s in rail_stations]
-    matrix = gmaps.distance_matrix(origins=[location], destinations=destinations, mode="walking")
+    matrix = gmaps.distance_matrix(
+        origins=[location],
+        destinations=destinations,
+        mode="walking"
+    )
     if matrix['status'] != 'OK':
         return None
 
     elements = matrix['rows'][0]['elements']
     best_idx, min_meters = -1, float('inf')
+
     for i, e in enumerate(elements):
         if e['status'] == 'OK' and e['distance']['value'] < min_meters:
             min_meters = e['distance']['value']
@@ -80,22 +102,27 @@ def get_nearest_station(address: str) -> dict | None:
     if best_idx == -1:
         return None
 
-    best = rail_stations[best_idx]
+    best = candidates[best_idx]
+    name_lower = best['name'].lower()
+    types = best.get('types', [])
+    is_metro = 'subway_station' in types or 'metro' in name_lower
+    station_type_label = 'metro' if is_metro else 'local_train'
+
     stop_id = get_station_stop_id(best['name'])
 
     return {
         "station_name":        best['name'],
+        "station_type":        station_type_label,   # 'metro' or 'local_train'
         "stop_id":             stop_id,
         "distance_to_station": elements[best_idx]['distance']['text'],
         "walking_time":        elements[best_idx]['duration']['text'],
         "location":            best['geometry']['location'],
     }
 
-
 #Endpoint
 
 @app.get("/get-connectivity")
-async def get_connectivity(source: str, destination: str):
+def get_connectivity(source: str, destination: str):
     start_info = get_nearest_station(source)
     end_info   = get_nearest_station(destination)
     print(f"source: name='{start_info.get('station_name')}' stop_id='{start_info.get('stop_id')}'")
@@ -106,7 +133,6 @@ async def get_connectivity(source: str, destination: str):
     trains = []
     if start_info.get("stop_id") and end_info.get("stop_id"):
         trains = find_trains(start_info["stop_id"], end_info["stop_id"], current_time)
-
     return {
         "current_time": current_time,
         "source_connectivity": {
@@ -121,3 +147,5 @@ async def get_connectivity(source: str, destination: str):
         },
         "trains": trains,  
     }
+if __name__ == "__main__":
+    print(get_connectivity("dav public school, nerul", "chembur station"))

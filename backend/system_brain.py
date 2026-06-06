@@ -51,11 +51,22 @@ def expand_to_station_routes(line_paths, start_stop, end_stop):
 
         for ic_combo in product(*segment_options):
             legs = []
+
+            # ✅ FIX: Direct route — same line, no interchange
+            if len(ic_combo) == 0:
+                legs.append({
+                    'from_stop': start_stop,
+                    'to_stop':   end_stop,
+                    'line':      line_path[0]
+                })
+                all_routes.append(legs)
+                continue  # skip the interchange logic below
+
+            # Multi-leg route — has interchanges
             for i, ic_stop in enumerate(ic_combo):
                 current_line = line_path[i]
                 from_stop = start_stop if i == 0 else swap_line(ic_combo[i-1], current_line)
-                to_stop   = swap_line(ic_stop, current_line)  # ← key fix
-
+                to_stop   = swap_line(ic_stop, current_line)
                 legs.append({'from_stop': from_stop, 'to_stop': to_stop, 'line': current_line})
 
             last_line = line_path[-1]

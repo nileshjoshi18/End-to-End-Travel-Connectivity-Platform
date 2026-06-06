@@ -54,7 +54,6 @@ def get_train_details(schedule_id: str):
     cumulative_mins = origin_mins
     stop_schedule   = []
 
-    # FIX: use enumerate so counter is always 0,1,2,3... regardless of DF index
     for counter, (_, row) in enumerate(df_stops.iterrows()):
         if counter > 0:
             cumulative_mins += pd.to_numeric(row['travel_time_next'], errors='coerce') or 0
@@ -74,5 +73,6 @@ def get_train_details(schedule_id: str):
     }
 if __name__ == "__main__":
     trains = get_train_details('HRSPV_98072')
+    print(trains)
     for t in trains['stops']:
         print(t)
