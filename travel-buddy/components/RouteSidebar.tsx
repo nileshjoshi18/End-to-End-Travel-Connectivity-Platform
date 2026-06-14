@@ -15,10 +15,10 @@ interface TravelInfo {
   current_time: string
   source_station: string
   source_distance: string
-  source_walk: string
+  // source_walk: string
   dest_station: string
   dest_distance: string
-  dest_walk: string
+  // dest_walk: string
   trains: Train[]
 }
 
@@ -40,10 +40,10 @@ interface MultiLegInfo {
   legs: Leg[]
   source_station: string
   source_distance: string
-  source_walk: string
+  // source_walk: string
   dest_station: string
   dest_distance: string
-  dest_walk: string
+  // dest_walk: string
 }
 
 interface Props {
@@ -158,12 +158,14 @@ export default function RouteSidebar({
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
               <p className="text-[9px] font-bold text-blue-500 uppercase tracking-widest mb-1">Board at</p>
               <p className="text-sm font-bold text-gray-900 leading-tight">{travelInfo.source_station}</p>
-              <p className="text-[10px] text-gray-400 mt-1">{travelInfo.source_distance} · {travelInfo.source_walk} walk</p>
+              <p className="text-[10px] text-gray-400 mt-1">{travelInfo.source_distance} · walk</p>
+              {/* ........................................................................{travelInfo.source_walk} · walk</p> */}
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
               <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Alight at</p>
               <p className="text-sm font-bold text-gray-900 leading-tight">{travelInfo.dest_station}</p>
-              <p className="text-[10px] text-gray-400 mt-1">{travelInfo.dest_distance} · {travelInfo.dest_walk} walk</p>
+              <p className="text-[10px] text-gray-400 mt-1">{travelInfo.dest_distance} · walk</p>
+              {/* ........................................................................{travelInfo.dest_walk} · walk</p> */}
             </div>
           </div>
 
@@ -231,12 +233,12 @@ export default function RouteSidebar({
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
               <p className="text-[9px] font-bold text-blue-500 uppercase tracking-widest mb-1">Walk to</p>
               <p className="text-sm font-bold text-gray-900 leading-tight">{multiLegInfo.source_station}</p>
-              <p className="text-[10px] text-gray-400 mt-1">{multiLegInfo.source_walk} walk</p>
+              {/* <p className="text-[10px] text-gray-400 mt-1">{multiLegInfo.source_walk} walk</p> */}
             </div>
             <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
               <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Walk from</p>
               <p className="text-sm font-bold text-gray-900 leading-tight">{multiLegInfo.dest_station}</p>
-              <p className="text-[10px] text-gray-400 mt-1">{multiLegInfo.dest_walk} walk</p>
+              {/* <p className="text-[10px] text-gray-400 mt-1">{multiLegInfo.dest_walk} walk</p> */}
             </div>
           </div>
 

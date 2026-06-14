@@ -138,5 +138,5 @@ async def resultant_routes(start_stop: str, end_stop: str, user_time: str):
 if __name__ == "__main__":
     import asyncio
     # FIX: resultant_routes is async — must be awaited
-    result = asyncio.run(resultant_routes("dav public school, nerul", "virar station", "20:00"))
+    result = asyncio.run(resultant_routes("seawoods station", "virar station", "20:00"))
     print(result)

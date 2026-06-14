@@ -93,13 +93,6 @@ def _stops_for_line(line: str, df_route_stops: pd.DataFrame) -> list[str]:
     ]['stop_id'].unique().tolist()
 
 def changeover_routes(start_stop: str, end_stop: str) -> list[list[dict]]:
-    """
-    Find all viable sequences of lines connecting start_stop to end_stop,
-    including direct (single-line) and multi-line (changeover) paths.
-
-    Returns a list of routes, each route being a list of leg dicts:
-        [{'from_stop': ..., 'to_stop': ..., 'line': ...}, ...]
-    """
     df_route_stops = pd.read_sql(
         "SELECT DISTINCT route_id, stop_id FROM route_stops", engine
     )
@@ -111,11 +104,6 @@ def changeover_routes(start_stop: str, end_stop: str) -> list[list[dict]]:
         return [[{'from_stop': start_stop, 'to_stop': end_stop, 'line': start_line}]]
 
     def interchange_stops(line_a: str, line_b: str) -> list[str]:
-        """
-        Return stop_ids on line_a that have a corresponding stop on line_b
-        at the same physical station (same prefix, different suffix).
-        e.g. 'DAD_WR' <-> 'DAD_CR'
-        """
         stops_a = set(_stops_for_line(line_a, df_route_stops))
         stops_b = set(_stops_for_line(line_b, df_route_stops))
         prefixes_b = {s.rsplit('_', 1)[0] for s in stops_b}

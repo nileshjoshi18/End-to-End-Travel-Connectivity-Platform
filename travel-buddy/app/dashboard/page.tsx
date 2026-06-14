@@ -29,16 +29,14 @@ export default function Dashboard() {
     setErrorMsg(null)
 
     try {
-      // ── Step 1: Try single-line connectivity ──────────────────────────────
+      // 1.Try single-line connectivity 
       const res  = await fetch(
         `http://127.0.0.1:8000/get-connectivity?source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dest)}`
       )
       const data = await res.json()
 
       const trains: any[] = data.trains ?? []
-
       if (trains.length > 0) {
-        // Single-line route found ✅
         setTravelInfo({
           source_station:  data.source_connectivity?.station_name        || "Unknown",
           source_distance: data.source_connectivity?.distance_to_station  || "0km",
@@ -47,13 +45,14 @@ export default function Dashboard() {
           dest_distance:   data.destination_connectivity?.distance_to_station || "0km",
           dest_walk:       data.destination_connectivity?.walking_time        || "0 min",
           trains,
+          train_fare:      data.fare ?? null,
           current_time:    data.current_time || "",
         })
         setRouteMode("single")
         return
       }
 
-      // ── Step 2: Fallback — try multi-line resultant routes 
+      // 2.Fallback — try multi-line resultant routes 
       const srcStation  = data.source_connectivity?.station_name
       const destStation = data.destination_connectivity?.station_name
 
