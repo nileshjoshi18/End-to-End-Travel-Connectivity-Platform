@@ -58,7 +58,8 @@ async def resultant_routes(start_stop: str, end_stop: str, user_time: str):
 
     start_stop = start_info["stop_id"]
     end_stop   = end_info["stop_id"]
-
+    start_info_lat, start_info_long = start_info["lat"], start_info["lng"]
+    end_info_lat, end_info_long = end_info["lat"], end_info["lng"]
     if not start_stop or not end_stop:
         raise HTTPException(status_code=404, detail=f"No stop ID found for one or both stations.")
 
@@ -117,6 +118,10 @@ async def resultant_routes(start_stop: str, end_stop: str, user_time: str):
             "from_stop":     leg['from_stop'],
             "to_stop":       leg['to_stop'],
             "line":          leg['line'],
+            "start_latitude":      start_info_lat,
+            "start_longitude":     start_info_long,
+            "end_latitude":        end_info_lat,
+            "end_longitude":       end_info_long,
             "train_id":      train['train_id'],
             "departure":     minutes_to_time(abs_dep),
             "arrival":       minutes_to_time(abs_arr),

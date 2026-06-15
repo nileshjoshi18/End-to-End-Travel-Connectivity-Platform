@@ -86,14 +86,6 @@ def get_nearest_station(address: str) -> dict | None:
         "lat":                 station['lat'],
         "lng":                 station['lng'],
     }
-    # return {
-    #     "station_name":        best['name'],
-    #     "station_type":        station_type_label,
-    #     "stop_id":             stop_id,
-    #     "distance_to_station": elements[best_idx]['distance']['text'],
-    #     "walking_time":        elements[best_idx]['duration']['text'],
-    #     "location":            best['geometry']['location'],
-    # }
 
 
 def singleRouteFare(source_stop: str, destination_stop: str, train_id: str):
@@ -134,7 +126,8 @@ def singleRouteFare(source_stop: str, destination_stop: str, train_id: str):
 def get_connectivity(source: str, destination: str):
     start_info = get_nearest_station(source)
     end_info = get_nearest_station(destination)
-
+    start_info_lat, start_info_long = start_info["lat"], start_info["lng"]
+    end_info_lat, end_info_long = end_info["lat"], end_info["lng"]
     if not start_info or not end_info:
         raise HTTPException(status_code=404, detail="Could not find railway stations for these locations.")
 
@@ -152,11 +145,15 @@ def get_connectivity(source: str, destination: str):
         "source_connectivity": {
             "station_name":        start_info["station_name"],
             "distance_to_station": start_info["distance_to_station"],
+            "latitude":            start_info_lat,
+            "longitude":           start_info_long,
             # "walking_time":        start_info["walking_time"],
         },
         "destination_connectivity": {
             "station_name":        end_info["station_name"],
             "distance_to_station": end_info["distance_to_station"],
+            "latitude":            end_info_lat,
+            "longitude":           end_info_long,
             # "walking_time":        end_info["walking_time"],
         },
         "trains": trains,

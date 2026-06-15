@@ -1,6 +1,7 @@
 // components/RouteVisualizer.tsx
 "use client"
-import { calculateAutoFare } from "@/utils/fare"
+import { useEffect, useState } from "react"
+import { calculateAutoFare, calculateCabFare } from "@/utils/fare"
 import { useRouter } from "next/navigation"
 
 interface Train {
@@ -15,23 +16,59 @@ interface RouteVisualizerProps {
   src: string
   dest: string
   selectedTrain?: Train
+  // Optional GPS coords to enable cab fare; [lng, lat]
+  srcCoords?: [number, number]
+  destCoords?: [number, number]
 }
 
-export default function RouteVisualizer({ info, src, dest, selectedTrain }: RouteVisualizerProps) {
+interface CabInfo {
+  fare: number
+  distanceKm: number
+  durationMin: number
+}
+
+export default function RouteVisualizer({
+  info,
+  src,
+  dest,
+  selectedTrain,
+  srcCoords,
+  destCoords,
+}: RouteVisualizerProps) {
+  // distance_to_station is in metres from PostGIS — fare util handles the /1000
   const distSrc  = parseFloat(info.source_distance) || 0
   const distDest = parseFloat(info.dest_distance)   || 0
   const router   = useRouter()
 
   const autoFareSrc  = calculateAutoFare(distSrc)
   const autoFareDest = calculateAutoFare(distDest)
-  const trainFare    = info.train_fare ?? null          // from API, null if unavailable
+  const trainFare    = info.train_fare ?? null
   const totalFare    = autoFareSrc + (trainFare ?? 0) + autoFareDest
+
+  // ── Cab fare (ORS) ──────────────────────────────────────────────────────
+  const [cabInfo, setCabInfo] = useState<CabInfo | null>(null)
+  // Start as true when coords are present so we show "Calculating…" immediately
+  const [cabLoading, setCabLoading] = useState(!!(srcCoords && destCoords))
+
+  useEffect(() => {
+    if (!srcCoords || !destCoords) return
+    let cancelled = false
+    calculateCabFare(srcCoords, destCoords).then((result) => {
+      if (!cancelled) {
+        setCabInfo(result)
+        setCabLoading(false)
+      }
+    })
+    return () => { cancelled = true }
+  }, [srcCoords, destCoords])
 
   const handleRedirect = () => {
     const train = selectedTrain ?? info.trains?.[0]
     const params = new URLSearchParams({
-      src:          src,
-      dest:         dest,
+      src_lat:      info.source_lat,
+      src_lng:      info.source_long,
+      dest_lat:     info.dest_lat,
+      dest_lng:     info.dest_long,
       src_station:  info.source_station ?? "",
       dest_station: info.dest_station   ?? "",
       train_id:     train?.train_id     ?? "",
@@ -94,6 +131,7 @@ export default function RouteVisualizer({ info, src, dest, selectedTrain }: Rout
 
       <div className="mt-8 pt-6 border-t border-gray-100 space-y-3">
 
+        {/* Per-component breakdown */}
         <div className="flex flex-wrap gap-x-5 gap-y-1">
           {autoFareSrc > 0 && (
             <span className="text-[11px] text-gray-400">
@@ -112,10 +150,43 @@ export default function RouteVisualizer({ info, src, dest, selectedTrain }: Rout
           )}
         </div>
 
-        {/* Total */}
+        {/* Total (train route) */}
         <div className="flex justify-between items-center">
           <p className="text-sm font-bold text-gray-500 uppercase">Total Cost</p>
           <p className="text-2xl font-black text-blue-700">₹{totalFare}</p>
+        </div>
+
+        {/* ── Cab alternative ─────────────────────────────────────────────── */}
+        <div className="mt-3 pt-3 border-t border-dashed border-gray-100">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">🚖</span>
+                <div>
+                  <p className="text-xs font-bold text-gray-600">Cab (door-to-door)</p>
+                  {cabInfo && (
+                    <p className="text-[10px] text-gray-400">
+                      {cabInfo.distanceKm.toFixed(1)} km · ~{Math.round(cabInfo.durationMin)} min
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                {cabLoading ? (
+                  <p className="text-sm text-gray-400 animate-pulse">Calculating…</p>
+                ) : cabInfo ? (
+                  <>
+                    <p className="text-lg font-black text-amber-600">₹{cabInfo.fare}</p>
+                    <p className="text-[10px] text-gray-400">
+                      {cabInfo.fare > totalFare
+                        ? `₹${cabInfo.fare - totalFare} more than train`
+                        : `₹${totalFare - cabInfo.fare} cheaper than train`}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[11px] text-gray-400">Unavailable</p>
+                )}
+              </div>
+            </div>
         </div>
       </div>
 

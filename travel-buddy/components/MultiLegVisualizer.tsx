@@ -1,6 +1,7 @@
 // components/MultiLegVisualizer.tsx
 "use client"
-import { calculateAutoFare } from "@/utils/fare"
+import { useEffect, useState } from "react"
+import { calculateAutoFare, calculateCabFare } from "@/utils/fare"
 import { useRouter } from "next/navigation"
 
 interface Leg {
@@ -16,13 +17,13 @@ interface Leg {
 interface MultiLegInfo {
   start_stop: string
   end_stop: string
-  source_station: string   // now returned directly by API
-  dest_station: string     // now returned directly by API
+  source_station: string
+  dest_station: string
   requested_time: string
   final_arrival: string
   legs: Leg[]
-  leg_fares: number[]      // train fare per leg, from API
-  source_distance: string  // injected from connectivity response
+  leg_fares: number[]
+  source_distance: string
   source_walk: string
   dest_distance: string
   dest_walk: string
@@ -32,6 +33,15 @@ interface Props {
   info: MultiLegInfo
   src: string
   dest: string
+  // Optional GPS coords to enable cab fare; [lng, lat]
+  srcCoords?: [number, number]
+  destCoords?: [number, number]
+}
+
+interface CabInfo {
+  fare: number
+  distanceKm: number
+  durationMin: number
 }
 
 // ── Colour system per line ────────────────────────────────────────────────────
@@ -43,19 +53,35 @@ const LINE_STYLES: Record<string, { bg: string; pill: string; text: string; bar:
 const FALLBACK_STYLE = { bg: "bg-purple-600", pill: "bg-purple-100 text-purple-700", text: "text-purple-600", bar: "bg-purple-400" }
 const getStyle = (line: string) => LINE_STYLES[line] ?? FALLBACK_STYLE
 
-export default function MultiLegVisualizer({ info, src, dest }: Props) {
+export default function MultiLegVisualizer({ info, src, dest, srcCoords, destCoords }: Props) {
   const router = useRouter()
 
-  // Auto fares (walk legs) — client-calculated from distance
+  // distance_to_station is in metres from PostGIS — fare util handles the /1000
   const distSrc  = parseFloat(info.source_distance) || 0
   const distDest = parseFloat(info.dest_distance)   || 0
   const autoFareSrc  = calculateAutoFare(distSrc)
   const autoFareDest = calculateAutoFare(distDest)
 
-  // Train fares — from API
   const legFares       = info.leg_fares ?? []
   const totalTrainFare = legFares.reduce((sum, f) => sum + f, 0)
   const totalFare      = autoFareSrc + totalTrainFare + autoFareDest
+
+  // ── Cab fare (ORS) ──────────────────────────────────────────────────────
+  const [cabInfo, setCabInfo] = useState<CabInfo | null>(null)
+  // Start as true when coords are present so we show "Calculating…" immediately
+  const [cabLoading, setCabLoading] = useState(!!(srcCoords && destCoords))
+
+  useEffect(() => {
+    if (!srcCoords || !destCoords) return
+    let cancelled = false
+    calculateCabFare(srcCoords, destCoords).then((result) => {
+      if (!cancelled) {
+        setCabInfo(result)
+        setCabLoading(false)
+      }
+    })
+    return () => { cancelled = true }
+  }, [srcCoords, destCoords])
 
   const firstDep = info.legs[0]?.departure ?? "—"
 
@@ -119,7 +145,6 @@ export default function MultiLegVisualizer({ info, src, dest }: Props) {
                     <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full ${style.pill}`}>
                       {leg.line}
                     </span>
-                    {/* Fare badge on the card */}
                     {fare != null && (
                       <span className="text-[9px] font-black bg-white/20 px-1.5 py-0.5 rounded-full tabular-nums">
                         ₹{fare}
@@ -188,10 +213,43 @@ export default function MultiLegVisualizer({ info, src, dest }: Props) {
             )}
           </div>
 
-          {/* Total */}
+          {/* Total (train route) */}
           <div className="flex justify-between items-center">
             <p className="text-sm font-bold text-gray-500 uppercase">Total Cost</p>
             <p className="text-2xl font-black text-blue-700">₹{totalFare}</p>
+          </div>
+
+          {/* ── Cab alternative ───────────────────────────────────────────── */}
+          <div className="mt-1 pt-3 border-t border-dashed border-gray-100">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-base">🚖</span>
+                  <div>
+                    <p className="text-xs font-bold text-gray-600">Cab (door-to-door)</p>
+                    {cabInfo && (
+                      <p className="text-[10px] text-gray-400">
+                        {cabInfo.distanceKm.toFixed(1)} km · ~{Math.round(cabInfo.durationMin)} min
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  {cabLoading ? (
+                    <p className="text-sm text-gray-400 animate-pulse">Calculating…</p>
+                  ) : cabInfo ? (
+                    <>
+                      <p className="text-lg font-black text-amber-600">₹{cabInfo.fare}</p>
+                      <p className="text-[10px] text-gray-400">
+                        {cabInfo.fare > totalFare
+                          ? `₹${cabInfo.fare - totalFare} more than train`
+                          : `₹${totalFare - cabInfo.fare} cheaper than train`}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-gray-400">Unavailable</p>
+                  )}
+                </div>
+              </div>
           </div>
         </div>
       </div>

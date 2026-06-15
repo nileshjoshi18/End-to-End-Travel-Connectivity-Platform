@@ -39,10 +39,14 @@ export default function Dashboard() {
       if (trains.length > 0) {
         setTravelInfo({
           source_station:  data.source_connectivity?.station_name        || "Unknown",
+          source_lat:      data.source_connectivity?.latitude,
+          source_long:     data.source_connectivity?.longitude,
           source_distance: data.source_connectivity?.distance_to_station  || "0km",
           source_walk:     data.source_connectivity?.walking_time          || "0 min",
           dest_station:    data.destination_connectivity?.station_name        || "Unknown",
           dest_distance:   data.destination_connectivity?.distance_to_station || "0km",
+          dest_lat:        data.destination_connectivity?.latitude,
+          dest_long:       data.destination_connectivity?.longitude,
           dest_walk:       data.destination_connectivity?.walking_time        || "0 min",
           trains,
           train_fare:      data.fare ?? null,
@@ -79,9 +83,13 @@ export default function Dashboard() {
         source_station:  srcStation,
         source_distance: data.source_connectivity?.distance_to_station || "0km",
         source_walk:     data.source_connectivity?.walking_time         || "0 min",
+        source_lat:      data.source_connectivity?.latitude,
+        source_long:     data.source_connectivity?.longitude,
         dest_station:    destStation,
         dest_distance:   data.destination_connectivity?.distance_to_station || "0km",
         dest_walk:       data.destination_connectivity?.walking_time        || "0 min",
+        dest_lat:        data.destination_connectivity?.latitude,
+        dest_long:       data.destination_connectivity?.longitude,
       })
       setRouteMode("multi")
 
@@ -115,6 +123,12 @@ export default function Dashboard() {
               src={activeSrc}
               dest={activeDest}
               selectedTrain={travelInfo.trains?.[0]}
+              srcCoords={travelInfo.source_lat != null && travelInfo.source_long != null
+                ? [travelInfo.source_long, travelInfo.source_lat] as [number, number]
+                : undefined}
+              destCoords={travelInfo.dest_lat != null && travelInfo.dest_long != null
+                ? [travelInfo.dest_long, travelInfo.dest_lat] as [number, number]
+                : undefined}
             />
           )}
 
@@ -123,6 +137,12 @@ export default function Dashboard() {
               info={multiLegInfo}
               src={activeSrc}
               dest={activeDest}
+              srcCoords={multiLegInfo.source_lat != null && multiLegInfo.source_long != null
+                ? [multiLegInfo.source_long, multiLegInfo.source_lat] as [number, number]
+                : undefined}
+              destCoords={multiLegInfo.dest_lat != null && multiLegInfo.dest_long != null
+                ? [multiLegInfo.dest_long, multiLegInfo.dest_lat] as [number, number]
+                : undefined}
             />
           )}
 
