@@ -1,6 +1,5 @@
 1.metro lines, central line, uber, fares pricing 
 2.djikstras, ai int(using langchain/langraph)
-3.maps and nearby viscinitiy api vhange from google api
 4.redis caching
 5.Dockerizing
 6.deployment
@@ -11,3 +10,6 @@ backend api activation
 uvicorn nearest_station:app --reload
 uvicorn routing_results:app --reload --port 8002
 uvicorn train_details:app --reload --port 8001
+festival analyzer, population density vs official complexes analyzer - crowd management
+delay preemption by online news scraping for rains/megablock
+

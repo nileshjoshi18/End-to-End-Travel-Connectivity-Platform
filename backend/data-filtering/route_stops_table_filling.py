@@ -6,7 +6,7 @@ from datetime import datetime
 # ============================================================
 # STEP 1: Load & Flatten
 # ============================================================
-df_main = pd.read_excel('centralline_fromkasara_up.xlsx', header=[0, 1])
+df_main = pd.read_excel('metroline1_fromversova.xlsx', header=[0, 1])
 df_stops = pd.read_excel('stops_table.xlsx')
 
 df_stops.columns = df_stops.columns.str.strip()
@@ -68,7 +68,7 @@ for col in train_cols:
 
     key = (str(pattern), suffix)
     if key not in route_map:
-        route_id = f'CRTR{str(route_counter).zfill(4)}{suffix}'
+        route_id = f'MET1{str(route_counter).zfill(4)}{suffix}'
         route_map[key] = route_id
         route_counter += 1
 
@@ -78,14 +78,14 @@ for col in train_cols:
         unique_routes.append({
             'route_id': route_id,
             'name': r_name,
-            'mode': 'LOCALTR',
+            'mode': 'METRO',
             'is_active': True,
             'pattern_key': str(pattern)
         })
 
 routes_df = pd.DataFrame(unique_routes)
-routes_df.to_excel('route_table_6.xlsx', index=False)
-print(f"✅ Route table: {len(routes_df)} unique routes → route_table_6.xlsx")
+routes_df.to_excel('route_table_7.xlsx', index=False)
+print(f"✅ Route table: {len(routes_df)} unique routes → route_table_7.xlsx")
 
 
 # STEP 5: Build Route Stops Table
@@ -147,9 +147,9 @@ for col in train_cols:
     processed_route_ids.add(r_id)
 
 output_df = pd.DataFrame(all_stop_rows)
-output_df.to_excel('route_stops_6.xlsx', index=False)
+output_df.to_excel('route_stops_7.xlsx', index=False)
 
-print(f"✅ Route stops: {len(output_df)} rows → route_stops_6.xlsx")
+print(f"✅ Route stops: {len(output_df)} rows → route_stops_7.xlsx")
 print(output_df[['route_stop_id', 'route_id', 'sequence_no']].head(10))
 
 if missing_stops:
