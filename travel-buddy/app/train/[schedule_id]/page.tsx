@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
+import CrowdBadge from "@/components/CrowdBadge"
+import { fetchTrainDetails } from "@/utils/api"
+import { useRouteContext } from "@/context/RouteContext"
 
 interface Stop {
   sequence_no: number
@@ -19,40 +22,42 @@ interface TrainDetails {
 }
 
 export default function TrainDetailPage() {
-  const params = useParams()                                    
-  const schedule_id = Array.isArray(params.schedule_id)        
+  const params = useParams()
+  const schedule_id = Array.isArray(params.schedule_id)
     ? params.schedule_id[0]
     : params.schedule_id
 
   const router = useRouter()
+  const { travelInfo, multiLegInfo } = useRouteContext()
   const [details, setDetails] = useState<TrainDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    console.log("schedule_id from params:", schedule_id)       
+  // Crowd scores for THIS train's stops come from whichever route search
+  // is currently sitting in context (get_routes attaches crowd_scores for
+  // source/dest/interchanges only — not every stop on the train, since
+  // the backend deliberately scopes it that way). We surface what we have
+  // and show "no data" for stops the backend never scored.
+  const crowdScores: Record<string, { crowd_score: number | null }> =
+    travelInfo?.crowd_scores ?? multiLegInfo?.crowd_scores ?? {}
 
+  useEffect(() => {
     if (!schedule_id) {
       setError("No schedule ID in URL.")
       setLoading(false)
       return
     }
 
-    fetch(`http://127.0.0.1:8001/get-train-details?schedule_id=${encodeURIComponent(schedule_id)}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`Server returned ${r.status}`)
-        return r.json()
-      })
-      .then((data) => {
-        console.log("API response:", data)                     
-        setDetails(data)
-      })
-      .catch((e) => {
-        console.error("Fetch error:", e)
-        setError(e.message)
-      })
+    fetchTrainDetails(schedule_id)
+      .then((data: TrainDetails) => setDetails(data))
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [schedule_id])
+
+  // Back navigation preserves dashboard state automatically — search
+  // results live in RouteContext (app-level React state), which persists
+  // across client-side navigation and only clears on a full page reload.
+  const handleBack = () => router.back()
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
@@ -69,7 +74,7 @@ export default function TrainDetailPage() {
         <p className="text-gray-500 font-medium">Could not load train details</p>
         <p className="text-sm text-red-400">{error}</p>
         <button
-          onClick={() => router.back()}
+          onClick={handleBack}
           className="text-blue-600 text-sm underline"
         >
           Go back
@@ -78,12 +83,11 @@ export default function TrainDetailPage() {
     </div>
   )
 
-  // ── Detail view ──────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-blue-700 px-6 py-4 flex items-center gap-4">
         <button
-          onClick={() => router.back()}
+          onClick={handleBack}
           className="text-blue-200 hover:text-white transition-colors"
           aria-label="Back"
         >
@@ -108,6 +112,8 @@ export default function TrainDetailPage() {
               const isFirst = i === 0
               const isLast  = i === details.stops.length - 1
               const isTerminal = isFirst || isLast
+              const score = crowdScores[stop.stop_id]?.crowd_score ?? null
+              const hasScore = stop.stop_id in crowdScores
 
               return (
                 <div key={stop.stop_id} className="relative flex items-start gap-4 py-3">
@@ -123,9 +129,12 @@ export default function TrainDetailPage() {
                       }`}>
                         {stop.stop_name}
                       </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">Stop {stop.sequence_no}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-[11px] text-gray-400">Stop {stop.sequence_no}</p>
+                        {hasScore && <CrowdBadge score={score} compact />}
+                      </div>
                     </div>
-                    <p className={`tabular-nums text-sm ml-4 flex-shrink-0 ${
+                    <p className={`tabular-nums text-sm ml-4 flex-shrink-0 font-mono ${
                       isTerminal ? "font-bold text-blue-600" : "text-gray-500"
                     }`}>
                       {stop.arrival_time}

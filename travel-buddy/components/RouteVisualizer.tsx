@@ -42,7 +42,7 @@ export default function RouteVisualizer({
 
   const autoFareSrc  = calculateAutoFare(distSrc)
   const autoFareDest = calculateAutoFare(distDest)
-  const trainFare    = info.train_fare ?? null
+  const trainFare    = info.train_fare != null ? Number(info.train_fare) : null
   const totalFare    = autoFareSrc + (trainFare ?? 0) + autoFareDest
 
   // ── Cab fare (ORS) ──────────────────────────────────────────────────────

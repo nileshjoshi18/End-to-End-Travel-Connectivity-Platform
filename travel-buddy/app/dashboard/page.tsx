@@ -1,176 +1,218 @@
 // app/dashboard/page.tsx
 "use client"
-import { useState } from "react"
-import { useSession } from "next-auth/react"
 import RouteSidebar from "@/components/RouteSidebar"
 import RouteVisualizer from "@/components/RouteVisualizer"
 import MultiLegVisualizer from "@/components/MultiLegVisualizer"
+import Footer from "@/components/Footer"
+import { useRouteContext } from "@/context/RouteContext"
+import { fetchRoute, fetchAlternates, currentTimeHHMM } from "@/utils/api"
+import { useState } from "react"
 
+// Backend now always returns the same unified shape from get_routes/ask
+// (legs[] with 1 entry for a direct journey, multiple for an interchange
+// journey) — routeMode purely reflects how many legs came back so the UI
+// can pick a layout, it no longer reflects two different backend paths.
 export type RouteMode = "single" | "multi" | null
 
 export default function Dashboard() {
-  const { data: session } = useSession()
+  const {
+    travelInfo, setTravelInfo,
+    multiLegInfo, setMultiLegInfo,
+    alternates, setAlternates,
+    aiSummary, setAiSummary,
+    activeSrc, setActiveSrc,
+    activeDest, setActiveDest,
+    routeMode, setRouteMode,
+    errorMsg, setErrorMsg,
+  } = useRouteContext()
 
-  const [travelInfo, setTravelInfo]   = useState<any>(null)
-  const [multiLegInfo, setMultiLegInfo] = useState<any>(null)
-  const [loading, setLoading]         = useState(false)
-  const [activeSrc, setActiveSrc]     = useState("")
-  const [activeDest, setActiveDest]   = useState("")
-  const [routeMode, setRouteMode]     = useState<RouteMode>(null)
-  const [errorMsg, setErrorMsg]       = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [loadingNote, setLoadingNote] = useState("")
 
   const handleCalculateRoute = async (src: string, dest: string) => {
     setActiveSrc(src)
     setActiveDest(dest)
     setLoading(true)
+    setLoadingNote("Asking the route agent…")
     setTravelInfo(null)
     setMultiLegInfo(null)
+    setAlternates([])
+    setAiSummary(null)
     setRouteMode(null)
     setErrorMsg(null)
 
+    const userTime = currentTimeHHMM()
+
+    // Bump the loading copy after a few seconds so a slow /ask doesn't feel stuck
+    const slowTimer = setTimeout(() => setLoadingNote("Still thinking — checking the timetable directly…"), 8000)
+
     try {
-      // 1.Try single-line connectivity 
-      const res  = await fetch(
-        `http://127.0.0.1:8000/get-connectivity?source=${encodeURIComponent(src)}&destination=${encodeURIComponent(dest)}`
-      )
-      const data = await res.json()
+      const { data, source } = await fetchRoute(src, dest, userTime)
+      clearTimeout(slowTimer)
 
-      const trains: any[] = data.trains ?? []
-      if (trains.length > 0) {
-        setTravelInfo({
-          source_station:  data.source_connectivity?.station_name        || "Unknown",
-          source_lat:      data.source_connectivity?.latitude,
-          source_long:     data.source_connectivity?.longitude,
-          source_distance: data.source_connectivity?.distance_to_station  || "0km",
-          source_walk:     data.source_connectivity?.walking_time          || "0 min",
-          dest_station:    data.destination_connectivity?.station_name        || "Unknown",
-          dest_distance:   data.destination_connectivity?.distance_to_station || "0km",
-          dest_lat:        data.destination_connectivity?.latitude,
-          dest_long:       data.destination_connectivity?.longitude,
-          dest_walk:       data.destination_connectivity?.walking_time        || "0 min",
-          trains,
-          train_fare:      data.fare ?? null,
-          current_time:    data.current_time || "",
-        })
-        setRouteMode("single")
-        return
-      }
-
-      // 2.Fallback — try multi-line resultant routes 
-      const srcStation  = data.source_connectivity?.station_name
-      const destStation = data.destination_connectivity?.station_name
-
-      if (!srcStation || !destStation) {
-        setErrorMsg("Could not identify nearby stations for your journey.")
-        return
-      }
-
-      const currentTime = data.current_time || new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })
-
-      const multiRes = await fetch(
-        `http://127.0.0.1:8002/resultant-routes?start_stop=${encodeURIComponent(srcStation)}&end_stop=${encodeURIComponent(destStation)}&user_time=${encodeURIComponent(currentTime)}`
-      )
-
-      if (!multiRes.ok) {
+      const legs: any[] = data.legs ?? []
+      if (legs.length === 0) {
         setErrorMsg("No routes found between these locations — try different addresses.")
         return
       }
 
-      const multiData = await multiRes.json()
-      setMultiLegInfo({
-        ...multiData,
-        // Attach connectivity metadata so the visualizer can show walk info
-        source_station:  srcStation,
-        source_distance: data.source_connectivity?.distance_to_station || "0km",
-        source_walk:     data.source_connectivity?.walking_time         || "0 min",
-        source_lat:      data.source_connectivity?.latitude,
-        source_long:     data.source_connectivity?.longitude,
-        dest_station:    destStation,
-        dest_distance:   data.destination_connectivity?.distance_to_station || "0km",
-        dest_walk:       data.destination_connectivity?.walking_time        || "0 min",
-        dest_lat:        data.destination_connectivity?.latitude,
-        dest_long:       data.destination_connectivity?.longitude,
-      })
-      setRouteMode("multi")
+      if (source === "ask") {
+        setAiSummary(data.ai_summary ?? null)
+      }
 
-    } catch (err) {
+      if (legs.length === 1) {
+        // Single-leg: shape RouteSidebar/RouteVisualizer expect
+        const leg = legs[0]
+        setTravelInfo({
+          current_time:    data.requested_time,
+          source_station:  data.source_station,
+          source_distance: "",
+          dest_station:    data.dest_station,
+          dest_distance:   "",
+          start_stop:      data.start_stop,
+          end_stop:        data.end_stop,
+          source_lat:      leg.start_latitude,
+          source_long:     leg.start_longitude,
+          dest_lat:        leg.end_latitude,
+          dest_long:       leg.end_longitude,
+          trains: [{
+            train_id:  leg.train_id,
+            departure: leg.departure,
+            arrival:   leg.arrival,
+            duration:  data.final_arrival,
+            line:      leg.line,
+          }],
+          train_fare:   data.leg_fares?.[0] ?? null,
+          crowd_scores: data.crowd_scores ?? {},
+        })
+        setRouteMode("single")
+      } else {
+        setMultiLegInfo({
+          ...data,
+          source_distance: "",
+          dest_distance:   "",
+          source_walk:     "",
+          dest_walk:       "",
+          source_lat:      legs[0]?.start_latitude,
+          source_long:     legs[0]?.start_longitude,
+          dest_lat:        legs[legs.length - 1]?.end_latitude,
+          dest_long:       legs[legs.length - 1]?.end_longitude,
+        })
+        setRouteMode("multi")
+
+        // Fetch alternates in the background — only meaningful for multi-leg
+        fetchAlternates(src, dest, userTime).then(setAlternates).catch(() => setAlternates([]))
+      }
+    } catch (err: any) {
       console.error(err)
-      setErrorMsg("Something went wrong. Please check your connection and try again.")
+      setErrorMsg(err?.message || "Something went wrong. Please check your connection and try again.")
     } finally {
+      clearTimeout(slowTimer)
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <RouteSidebar
-        onCalculate={handleCalculateRoute}
-        travelInfo={travelInfo}
-        multiLegInfo={multiLegInfo}
-        loading={loading}
-        source={activeSrc}
-        destination={activeDest}
-        routeMode={routeMode}
-      />
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      <div className="flex flex-1 overflow-hidden">
+        <RouteSidebar
+          onCalculate={handleCalculateRoute}
+          travelInfo={travelInfo}
+          multiLegInfo={multiLegInfo}
+          loading={loading}
+          source={activeSrc}
+          destination={activeDest}
+          routeMode={routeMode}
+        />
 
-      <main className="flex-1 p-10 overflow-y-auto">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <h1 className="text-2xl font-bold text-gray-800">Route Optimization</h1>
+        <main className="flex-1 p-10 overflow-y-auto">
+          <div className="max-w-4xl mx-auto space-y-6">
+            <h1 className="text-2xl font-bold text-gray-800">Route Optimization</h1>
 
-          {routeMode === "single" && travelInfo && (
-            <RouteVisualizer
-              info={travelInfo}
-              src={activeSrc}
-              dest={activeDest}
-              selectedTrain={travelInfo.trains?.[0]}
-              srcCoords={travelInfo.source_lat != null && travelInfo.source_long != null
-                ? [travelInfo.source_long, travelInfo.source_lat] as [number, number]
-                : undefined}
-              destCoords={travelInfo.dest_lat != null && travelInfo.dest_long != null
-                ? [travelInfo.dest_long, travelInfo.dest_lat] as [number, number]
-                : undefined}
-            />
-          )}
-
-          {routeMode === "multi" && multiLegInfo && (
-            <MultiLegVisualizer
-              info={multiLegInfo}
-              src={activeSrc}
-              dest={activeDest}
-              srcCoords={multiLegInfo.source_lat != null && multiLegInfo.source_long != null
-                ? [multiLegInfo.source_long, multiLegInfo.source_lat] as [number, number]
-                : undefined}
-              destCoords={multiLegInfo.dest_lat != null && multiLegInfo.dest_long != null
-                ? [multiLegInfo.dest_long, multiLegInfo.dest_lat] as [number, number]
-                : undefined}
-            />
-          )}
-
-          {!routeMode && !loading && !errorMsg && (
-            <div className="h-96 border-2 border-dashed border-gray-200 rounded-3xl flex items-center justify-center text-gray-400">
-              Enter your journey details to see the most cost-effective route.
-            </div>
-          )}
-
-          {loading && (
-            <div className="h-96 border-2 border-dashed border-gray-200 rounded-3xl flex items-center justify-center">
-              <div className="text-center space-y-3">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-                <p className="text-sm text-gray-400">Finding the best route…</p>
+            {aiSummary && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex gap-3">
+                <span className="text-amber-500 text-lg flex-shrink-0">✦</span>
+                <div>
+                  <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-1">Agent summary</p>
+                  <p className="text-sm text-amber-900 leading-relaxed">{aiSummary}</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {errorMsg && !loading && (
-            <div className="h-96 border-2 border-dashed border-red-200 rounded-3xl flex items-center justify-center">
-              <div className="text-center space-y-2">
-                <p className="text-2xl">🚫</p>
-                <p className="text-sm font-medium text-gray-600">{errorMsg}</p>
+            {routeMode === "single" && travelInfo && (
+              <RouteVisualizer
+                info={travelInfo}
+                src={activeSrc}
+                dest={activeDest}
+                selectedTrain={travelInfo.trains?.[0]}
+                srcCoords={travelInfo.source_lat != null && travelInfo.source_long != null
+                  ? [travelInfo.source_long, travelInfo.source_lat] as [number, number]
+                  : undefined}
+                destCoords={travelInfo.dest_lat != null && travelInfo.dest_long != null
+                  ? [travelInfo.dest_long, travelInfo.dest_lat] as [number, number]
+                  : undefined}
+              />
+            )}
+
+            {routeMode === "multi" && multiLegInfo && (
+              <>
+                <MultiLegVisualizer
+                  info={multiLegInfo}
+                  src={activeSrc}
+                  dest={activeDest}
+                  srcCoords={multiLegInfo.source_lat != null && multiLegInfo.source_long != null
+                    ? [multiLegInfo.source_long, multiLegInfo.source_lat] as [number, number]
+                    : undefined}
+                  destCoords={multiLegInfo.dest_lat != null && multiLegInfo.dest_long != null
+                    ? [multiLegInfo.dest_long, multiLegInfo.dest_lat] as [number, number]
+                    : undefined}
+                />
+
+                {alternates.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">
+                      {alternates.length} alternate route{alternates.length !== 1 ? "s" : ""}
+                    </p>
+                    {alternates.map((alt, i) => (
+                      <MultiLegVisualizer
+                        key={i}
+                        info={{ ...alt, source_distance: "", dest_distance: "", source_walk: "", dest_walk: "" }}
+                        src={activeSrc}
+                        dest={activeDest}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {!routeMode && !loading && !errorMsg && (
+              <div className="h-96 border-2 border-dashed border-gray-200 rounded-3xl flex items-center justify-center text-gray-400">
+                Enter your journey details to see the most cost-effective route.
               </div>
-            </div>
-          )}
-        </div>
-      </main>
+            )}
+
+            {loading && (
+              <div className="h-96 border-2 border-dashed border-gray-200 rounded-3xl flex items-center justify-center">
+                <div className="text-center space-y-3">
+                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-sm text-gray-400">{loadingNote || "Finding the best route…"}</p>
+                </div>
+              </div>
+            )}
+
+            {errorMsg && !loading && (
+              <div className="h-96 border-2 border-dashed border-red-200 rounded-3xl flex items-center justify-center">
+                <div className="text-center space-y-2">
+                  <p className="text-2xl">🚫</p>
+                  <p className="text-sm font-medium text-gray-600">{errorMsg}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+      <Footer />
     </div>
   )
 }

@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react"
 import { calculateAutoFare, calculateCabFare } from "@/utils/fare"
 import { useRouter } from "next/navigation"
+import MetroBadge from "@/components/MetroBadge"
+import CrowdBadge from "@/components/CrowdBadge"
+import { getLineStyle } from "@/utils/transitDesign"
 
 interface Leg {
   from_stop: string
@@ -27,6 +30,7 @@ interface MultiLegInfo {
   source_walk: string
   dest_distance: string
   dest_walk: string
+  crowd_scores?: Record<string, { name: string; crowd_score: number | null }>
 }
 
 interface Props {
@@ -44,17 +48,11 @@ interface CabInfo {
   durationMin: number
 }
 
-// ── Colour system per line ────────────────────────────────────────────────────
-const LINE_STYLES: Record<string, { bg: string; pill: string; text: string; bar: string }> = {
-  "Western": { bg: "bg-blue-600",   pill: "bg-blue-100 text-blue-700",   text: "text-blue-600",   bar: "bg-blue-500"   },
-  "Central": { bg: "bg-orange-500", pill: "bg-orange-100 text-orange-700", text: "text-orange-600", bar: "bg-orange-400" },
-  "Harbour": { bg: "bg-teal-600",   pill: "bg-teal-100 text-teal-700",   text: "text-teal-600",   bar: "bg-teal-500"   },
-}
-const FALLBACK_STYLE = { bg: "bg-purple-600", pill: "bg-purple-100 text-purple-700", text: "text-purple-600", bar: "bg-purple-400" }
-const getStyle = (line: string) => LINE_STYLES[line] ?? FALLBACK_STYLE
-
 export default function MultiLegVisualizer({ info, src, dest, srcCoords, destCoords }: Props) {
   const router = useRouter()
+  const getStyle = getLineStyle
+
+  const crowdFor = (stopId: string) => info.crowd_scores?.[stopId]?.crowd_score ?? null
 
   // distance_to_station is in metres from PostGIS — fare util handles the /1000
   const distSrc  = parseFloat(info.source_distance) || 0
@@ -62,7 +60,7 @@ export default function MultiLegVisualizer({ info, src, dest, srcCoords, destCoo
   const autoFareSrc  = calculateAutoFare(distSrc)
   const autoFareDest = calculateAutoFare(distDest)
 
-  const legFares       = info.leg_fares ?? []
+  const legFares       = (info.leg_fares ?? []).map((f: any) => Number(f))
   const totalTrainFare = legFares.reduce((sum, f) => sum + f, 0)
   const totalFare      = autoFareSrc + totalTrainFare + autoFareDest
 
@@ -142,8 +140,11 @@ export default function MultiLegVisualizer({ info, src, dest, srcCoords, destCoo
                   className={`flex flex-col justify-between px-3 py-2.5 rounded-2xl cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md min-w-[115px] ${style.bg} text-white`}
                 >
                   <div className="flex items-start justify-between gap-1">
-                    <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full ${style.pill}`}>
-                      {leg.line}
+                    <span className="flex items-center gap-1">
+                      {style.isMetro && <MetroBadge line={leg.line} />}
+                      <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full ${style.pill}`}>
+                        {leg.line}
+                      </span>
                     </span>
                     {fare != null && (
                       <span className="text-[9px] font-black bg-white/20 px-1.5 py-0.5 rounded-full tabular-nums">
@@ -153,9 +154,9 @@ export default function MultiLegVisualizer({ info, src, dest, srcCoords, destCoo
                   </div>
                   <p className="text-[9px] font-bold mt-1.5 opacity-80 truncate max-w-[95px]">{leg.from_stop}</p>
                   <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm font-black tabular-nums">{leg.departure}</p>
+                    <p className="text-sm font-black tabular-nums font-mono">{leg.departure}</p>
                     <div className={`flex-1 mx-1 h-px opacity-40 ${style.bar}`} />
-                    <p className="text-sm font-black tabular-nums">{leg.arrival}</p>
+                    <p className="text-sm font-black tabular-nums font-mono">{leg.arrival}</p>
                   </div>
                   <p className="text-[9px] opacity-70 truncate max-w-[95px] mt-1">{leg.to_stop}</p>
                   <p className="text-[8px] opacity-40 text-center mt-1 uppercase tracking-widest">· · ·</p>
@@ -163,11 +164,14 @@ export default function MultiLegVisualizer({ info, src, dest, srcCoords, destCoo
 
                 {/* Interchange badge between legs */}
                 {!isLast && (
-                  <div className="flex items-center px-1">
-                    <div className="w-6 h-px bg-gray-300" />
-                    <div className="w-6 h-6 bg-amber-100 border-2 border-amber-400 rounded-full flex items-center justify-center">
-                      <span className="text-[9px]">⇄</span>
+                  <div className="flex flex-col items-center px-1 gap-1">
+                    <div className="flex items-center">
+                      <div className="w-6 h-px bg-gray-300" />
+                      <div className="w-6 h-6 bg-amber-100 border-2 border-amber-400 rounded-full flex items-center justify-center">
+                        <span className="text-[9px]">⇄</span>
+                      </div>
                     </div>
+                    <CrowdBadge score={crowdFor(leg.to_stop)} compact />
                   </div>
                 )}
               </div>
@@ -274,8 +278,9 @@ export default function MultiLegVisualizer({ info, src, dest, srcCoords, destCoo
               >
                 <div className="flex items-center gap-2">
                   <span className="text-base font-black opacity-70">#{i + 1}</span>
+                  {style.isMetro && <MetroBadge line={leg.line} size="md" />}
                   <div>
-                    <p className="text-xs font-bold">{leg.line} Line</p>
+                    <p className="text-xs font-bold">{style.label}</p>
                     <p className="text-[10px] opacity-70">{leg.train_id}</p>
                   </div>
                 </div>
@@ -309,10 +314,15 @@ export default function MultiLegVisualizer({ info, src, dest, srcCoords, destCoo
                               : "w-2.5 h-2.5 bg-white border-gray-300"
                           }`} />
                           <div className="flex-1 flex justify-between items-center">
-                            <p className={`text-xs leading-tight ${isFirst || isLast ? "font-bold text-gray-900" : "text-gray-500"}`}>
-                              {stop.stop_name}
-                            </p>
-                            <p className={`text-xs tabular-nums ${isFirst || isLast ? `font-bold ${style.text}` : "text-gray-400"}`}>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <p className={`text-xs leading-tight truncate ${isFirst || isLast ? "font-bold text-gray-900" : "text-gray-500"}`}>
+                                {stop.stop_name}
+                              </p>
+                              {(isFirst || isLast) && info.crowd_scores?.[stop.stop_id] && (
+                                <CrowdBadge score={crowdFor(stop.stop_id)} compact />
+                              )}
+                            </div>
+                            <p className={`text-xs tabular-nums flex-shrink-0 ml-2 ${isFirst || isLast ? `font-bold ${style.text}` : "text-gray-400"}`}>
                               {stop.arrival_time}
                             </p>
                           </div>
