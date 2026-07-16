@@ -1,7 +1,7 @@
 import pandas as pd
 
 # Load all sheets
-file = "centralline_fromkasara_up_western_format (1).xlsx"
+file = "THB_UP_western_format.xlsx"
 xls = pd.ExcelFile(file)
 
 dfs = []
@@ -14,4 +14,4 @@ for sheet in xls.sheet_names:
 merged_df = pd.concat(dfs, ignore_index=True)
 
 # Save output
-merged_df.to_excel("centralline_fromkasara_up.xlsx", index=False)
+merged_df.to_excel("thane_line_ulti.xlsx", index=False)

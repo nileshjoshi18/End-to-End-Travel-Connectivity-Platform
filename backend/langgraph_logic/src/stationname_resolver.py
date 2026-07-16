@@ -7,7 +7,7 @@ from groq import Groq
 import pandas as pd
 from sqlalchemy import create_engine
 
-load_dotenv()  # ← must be called before os.getenv
+load_dotenv()  
 
 engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
 client = Groq(api_key=os.getenv("GROK_AI_API_KEY"))
@@ -47,12 +47,11 @@ Respond with ONLY valid JSON, no explanation, no markdown:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",        # ← correct model name
+            model="llama-3.1-8b-instant",  
             messages=[{"role": "user", "content": prompt}],
             max_tokens=100
         )
         text = response.choices[0].message.content.strip()
-        # Strip markdown code fences if Gemini adds them
         text = text.replace("```json", "").replace("```", "").strip()
         result = json.loads(text)
         stop_id = result.get("stop_id")

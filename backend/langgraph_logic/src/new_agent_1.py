@@ -88,6 +88,41 @@ tool_node      = ToolNode(tools_list)
 
 # ──────────────────────────── slim helper ────────────────────────────────
 
+def _extract_text(response) -> str:
+    """
+    Safely extract plain text from a Gemini (or any LangChain) AI response.
+
+    Gemini 2.5-flash with thinking enabled can return response.content as:
+      - a plain str  (most cases)
+      - an empty str ""  (when the answer is in content blocks instead)
+      - a list of dicts like [{"type": "text", "text": "..."}, ...]
+
+    This helper handles all three so callers never get a silent empty string.
+    """
+    content = response.content
+    if isinstance(content, str):
+        if content.strip():
+            return content.strip()
+        # Empty string — try the content blocks on the raw response object
+        try:
+            parts = (response.response_metadata or {}) \
+                        .get("candidates", [{}])[0] \
+                        .get("content", {}).get("parts", [])
+            texts = [p.get("text", "") for p in parts if p.get("text")]
+            return " ".join(texts).strip()
+        except Exception:
+            pass
+        return ""
+    if isinstance(content, list):
+        texts = [
+            block.get("text", "") if isinstance(block, dict) else str(block)
+            for block in content
+            if not (isinstance(block, dict) and block.get("type") in ("tool_use", "thinking"))
+        ]
+        return " ".join(t for t in texts if t).strip()
+    return str(content).strip()
+
+
 def _slim_tool_result(tool_name: str, raw_content: str) -> str:
     """Strip heavy train_details.stops arrays before passing to synthesize LLM."""
     if tool_name != "get_routes":
@@ -227,7 +262,7 @@ def collect_node(state: AgentState) -> AgentState:
     }
 
 
-def synthesize_node(state: AgentState) -> AgentState:
+def synthesize_node(state: AgentState) -> AgentState:   
     """
     LLM call #2: generate ONLY the ai_summary text from the routing data.
     The final response is built in run_agent() by taking routing_data as-is
@@ -242,6 +277,9 @@ def synthesize_node(state: AgentState) -> AgentState:
             "instructions. Do not output tables, headers, or anything else — just the summary text."
         )),
     ])
+    # Store extracted text alongside the message so run_agent can read it
+    # without re-parsing Gemini's content structure.
+    response._extracted_text = _extract_text(response)
     return {"messages": [response]}
 
 
@@ -292,7 +330,11 @@ async def run_agent(source: str, destination: str, user_time: str) -> dict:
     if routing_data is None:
         raise ValueError("Agent could not find a viable route for this query.")
 
-    ai_summary = result["messages"][-1].content.strip()
+    last_msg = result["messages"][-1]
+    # Use pre-extracted text if available (handles Gemini multi-part/thinking responses)
+    ai_summary = getattr(last_msg, "_extracted_text", None) or _extract_text(last_msg)
+    if not ai_summary:
+        ai_summary = "Route found. Please check the journey details above."
 
     # Build final response: routing_data fields as-is + ai_summary appended
     final = dict(routing_data)
@@ -305,7 +347,7 @@ if __name__ == "__main__":
 
     args = sys.argv[1:]
     source      = args[0] if len(args) > 0 else "Panvel"
-    destination = args[1] if len(args) > 1 else "Vashi"
+    destination = args[1] if len(args) > 1 else "vashi"
     user_time   = args[2] if len(args) > 2 else "20:00"
 
     print(f"Query: {source} -> {destination} at {user_time}\n")

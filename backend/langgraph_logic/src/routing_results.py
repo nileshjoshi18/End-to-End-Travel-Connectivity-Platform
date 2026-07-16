@@ -20,23 +20,17 @@ from system_brain import changeover_routes, determine_line
 from logic_test import get_minutes, fmt
 from train_details import get_train_details
 from nearest_station import get_nearest_station
+from additional_functions import fare_from_train_details, single_leg_fare, fetch_crowd_scores, _get_all_stop_ids_for_name, _has_direct_connection, _find_shared_line_stop_ids
 
 engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
-
-
-# ──────────────────────────── helpers ──────────────────────────────────
 
 def time_to_minutes(t: str, day_offset: int = 0) -> int:
     h, m = map(int, str(t).split(':')[:2])
     return day_offset * 1440 + h * 60 + m
 
-
 def minutes_to_time(mins: int) -> str:
     mins = int(mins) % 1440
     return f"{mins // 60:02d}:{mins % 60:02d}"
-
-
-# ──────────────────── in-memory train finder ───────────────────────────
 
 def find_trains_fast(
     start_stop: str,
@@ -52,7 +46,6 @@ def find_trains_fast(
     """
     user_mins = get_minutes(user_time_str)
     valid_route_data = []
-
     for rid, group in df_route_stops.groupby('route_id'):
         stops = group.sort_values('sequence_no').reset_index(drop=True)
 
@@ -108,91 +101,6 @@ def find_trains_fast(
         }
         for _, row in result.iterrows()
     ]
-
-
-# ──────────────────────────── fare ─────────────────────────────────────
-
-FARE_TABLE = [[0,3,5],[4,8,10],[9,15,15],[16,21,20],[22,30,25],[31,40,30]]
-
-def fare_from_train_details(route_legs: list) -> list[int]:
-    costs_per_leg = []
-    for leg in route_legs:
-        leg_source      = leg['from_stop']
-        leg_destination = leg['to_stop']
-        leg_stops_list  = leg.get('train_details', {}).get('stops', []) if leg.get('train_details') else []
-        src_sequence = des_sequence = None
-        for leg_stop in leg_stops_list:
-            if leg_stop['stop_id'] == leg_source:
-                src_sequence = leg_stop['sequence_no']
-            elif leg_stop['stop_id'] == leg_destination and src_sequence is not None:
-                des_sequence = leg_stop['sequence_no']
-                break
-        if src_sequence is None or des_sequence is None:
-            costs_per_leg.append(0)
-            continue
-        counts = des_sequence - src_sequence
-        cost = next((c[2] for c in FARE_TABLE if counts <= c[1]), FARE_TABLE[-1][2])
-        costs_per_leg.append(cost)
-    return costs_per_leg
-
-
-def single_leg_fare(source_stop: str, destination_stop: str, train_id: str) -> int | None:
-    """Fare for a same-line journey using the route_stops sequence directly."""
-    try:
-        df = pd.read_sql("""
-            SELECT rs.sequence_no, rs.stop_id FROM route_stops rs
-            JOIN schedules s ON rs.route_id = s.route_id
-            WHERE s.schedule_id = %(sid)s
-            ORDER BY rs.sequence_no
-        """, engine, params={"sid": train_id})
-
-        stop_ids = df['stop_id'].tolist()
-        src_sequence = des_sequence = None
-        for i, stop in enumerate(stop_ids):
-            if stop == source_stop:
-                src_sequence = i
-            elif stop == destination_stop and src_sequence is not None:
-                des_sequence = i
-                break
-        if src_sequence is None or des_sequence is None:
-            return None
-        counts = des_sequence - src_sequence
-        for row in FARE_TABLE:
-            if counts <= row[1]:
-                return row[2]
-        return FARE_TABLE[-1][2]
-    except Exception:
-        return None
-
-
-# ──────────────────────────── crowd scores ─────────────────────────────
-
-def fetch_crowd_scores(stop_ids: list[str]) -> dict[str, dict]:
-    """
-    Fetch crowd_score for a list of stop_ids in one query.
-    Returns {stop_id: {"name": str, "crowd_score": float | None}}
-    """
-    stop_ids = list({s for s in stop_ids if s})  # dedupe, drop falsy
-    if not stop_ids:
-        return {}
-    try:
-        placeholders = ", ".join(f"'{s}'" for s in stop_ids)
-        query = text(f"""
-            SELECT s.stop_id, s.name,
-                   COALESCE(cp.crowd_score, s.base_crowd_score) AS crowd_score
-            FROM stops s
-            LEFT JOIN station_crowd_profile cp ON s.stop_id = cp.stop_id
-            WHERE s.stop_id IN ({placeholders})
-        """)
-        with engine.connect() as conn:
-            rows = conn.execute(query).fetchall()
-        return {
-            r[0]: {"name": r[1], "crowd_score": float(r[2]) if r[2] is not None else None}
-            for r in rows
-        }
-    except Exception as e:
-        return {"_error": str(e)}
-
 
 # ──────────────────── single-leg path (same line) ──────────────────────
 
@@ -263,7 +171,6 @@ async def _get_routes_single_leg(start_info: dict, end_info: dict, user_time: st
         "leg_fares":      fare_list,
         "crowd_scores":   crowd,
     }
-
 
 # ──────────────────── multi-leg path (interchange) ──────────────────────
 
@@ -375,9 +282,6 @@ async def _get_routes_multi_leg(start_info: dict, end_info: dict, user_time: str
         "crowd_scores":   crowd,
     }
 
-
-# ──────────────────────────── public entry point ────────────────────────
-
 async def get_routes(start_stop: str, end_stop: str, user_time: str) -> dict:
     """
     SINGLE entry point replacing both old get_connectivity and resultant-routes.
@@ -401,13 +305,40 @@ async def get_routes(start_stop: str, end_stop: str, user_time: str) -> dict:
 
     src_stop_id = start_info["stop_id"]
     dst_stop_id = end_info["stop_id"]
-
     if not src_stop_id or not dst_stop_id:
         raise ValueError("No stop ID found for one or both stations.")
 
     start_line = determine_line(src_stop_id)
     end_line   = determine_line(dst_stop_id)
 
+    if start_line != end_line:
+        src_candidates, dst_candidates = await asyncio.gather(
+            asyncio.to_thread(_get_all_stop_ids_for_name, start_info["station_name"]),
+            asyncio.to_thread(_get_all_stop_ids_for_name, end_info["station_name"]),
+        )
+
+        if src_stop_id not in src_candidates:
+            src_candidates.append(src_stop_id)
+        if dst_stop_id not in dst_candidates:
+            dst_candidates.append(dst_stop_id)
+
+        shared_src, shared_dst = _find_shared_line_stop_ids(
+            src_candidates, dst_candidates,
+        )
+
+        if shared_src and shared_dst:
+            print(
+                f"[shared-line override] {src_stop_id}\u2192{dst_stop_id} "
+                f"snapped to {shared_src}\u2192{shared_dst}"
+            )
+            start_info  = {**start_info, "stop_id": shared_src}
+            end_info    = {**end_info,   "stop_id": shared_dst}
+            src_stop_id = shared_src
+            dst_stop_id = shared_dst
+            start_line  = determine_line(src_stop_id)
+            end_line    = determine_line(dst_stop_id)
+
+    print(start_line, end_line)
     if start_line == end_line:
         return await _get_routes_single_leg(start_info, end_info, user_time)
     else:
@@ -420,8 +351,7 @@ if __name__ == "__main__":
     async def _test():
         # Single-leg test (same line)
         t0 = time.time()
-        r1 = await get_routes("Panvel", "Vashi", "20:00")
-        print(f"Single-leg test ({time.time()-t0:.1f}s): legs={len(r1['legs'])}")
-        print(json.dumps(r1, indent=2, default=str)[:800])
+        r1 = await get_routes("belapur", "virar", "20:00")
+        print(json.dumps(r1, indent=2, default=str))
         print()
     asyncio.run(_test())

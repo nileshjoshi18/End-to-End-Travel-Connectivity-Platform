@@ -2,8 +2,8 @@ import pandas as pd
 import re
 
 # Load all
-df_main = pd.read_excel('metroline1_fromversova.xlsx', header=[0, 1])
-df_routes = pd.read_excel('route_table_7.xlsx')
+df_main = pd.read_excel('thane_line_ulti.xlsx', header=[0, 1])
+df_routes = pd.read_excel('route_table_9    .xlsx')
 df_stops = pd.read_excel('stops_table.xlsx')
 
 # Clean stops (Use the MX_WR fix if you applied it)
@@ -46,12 +46,12 @@ for col in train_cols:
         start_idx = pattern.index(1)
         
         schedule_rows.append({
-            'schedule_id': f"M1SPV_{train_no}",
+            'schedule_id': f"TVRSPV_{train_no}",
             'route_id': r_id,
             'stop_id': stop_map.get(stations[start_idx]),
             'departure_time': str(df_main[col].iloc[start_idx]).strip(),
             'days_of_week': 7 # Modify if you have Sunday logic
         })
 
-pd.DataFrame(schedule_rows).to_excel('schedule_table_7.xlsx', index=False)
+pd.DataFrame(schedule_rows).to_excel('schedule_table_9.xlsx', index=False)
 print(f"Generated {len(schedule_rows)} schedules.")
