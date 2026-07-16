@@ -28,6 +28,7 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(false)
   const [loadingNote, setLoadingNote] = useState("")
+  const [showAlternates, setShowAlternates] = useState(false)
 
   const handleCalculateRoute = async (src: string, dest: string) => {
     setActiveSrc(src)
@@ -40,6 +41,7 @@ export default function Dashboard() {
     setAiSummary(null)
     setRouteMode(null)
     setErrorMsg(null)
+    setShowAlternates(false)
 
     const userTime = currentTimeHHMM()
 
@@ -169,18 +171,40 @@ export default function Dashboard() {
                 />
 
                 {alternates.length > 0 && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">
-                      {alternates.length} alternate route{alternates.length !== 1 ? "s" : ""}
-                    </p>
-                    {alternates.map((alt, i) => (
-                      <MultiLegVisualizer
-                        key={i}
-                        info={{ ...alt, source_distance: "", dest_distance: "", source_walk: "", dest_walk: "" }}
-                        src={activeSrc}
-                        dest={activeDest}
-                      />
-                    ))}
+                  <div className="space-y-4">
+                    {/* Toggle button */}
+                    <button
+                      onClick={() => setShowAlternates(prev => !prev)}
+                      className="group w-full flex items-center justify-between px-5 py-3.5 rounded-2xl border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 shadow-sm hover:shadow"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-base">🔀</span>
+                        <span className="text-sm font-semibold text-gray-700 group-hover:text-blue-700 transition-colors">
+                          {showAlternates ? "Hide alternate routes" : `Show ${alternates.length} alternate route${alternates.length !== 1 ? "s" : ""}`}
+                        </span>
+                      </div>
+                      <span className={`text-gray-400 group-hover:text-blue-500 transition-all duration-300 ${showAlternates ? "rotate-180" : "rotate-0"}`}>
+                        ▾
+                      </span>
+                    </button>
+
+                    {/* Animated reveal */}
+                    <div className={`overflow-hidden transition-all duration-500 ease-in-out ${showAlternates ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}>
+                      <div className="space-y-3 pt-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
+                          {alternates.length} alternate route{alternates.length !== 1 ? "s" : ""}
+                        </p>
+                        {alternates.map((alt, i) => (
+                          <div key={i} className="transition-all duration-300" style={{ transitionDelay: `${i * 60}ms` }}>
+                            <MultiLegVisualizer
+                              info={{ ...alt, source_distance: "", dest_distance: "", source_walk: "", dest_walk: "" }}
+                              src={activeSrc}
+                              dest={activeDest}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </>

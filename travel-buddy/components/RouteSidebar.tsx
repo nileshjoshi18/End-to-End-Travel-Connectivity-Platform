@@ -114,7 +114,7 @@ export default function RouteSidebar({
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">From</label>
               <input
                 type="text"
-                placeholder="e.g. Gateway of India"
+                placeholder="Nearest Landmark/Train/Metro station"
                 value={tempSource}
                 onChange={(e) => setTempSource(e.target.value)}
                 className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
@@ -124,7 +124,7 @@ export default function RouteSidebar({
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">To</label>
               <input
                 type="text"
-                placeholder="e.g. Infiniti Mall"
+                placeholder="Nearest Landmark/Train/Metro station"
                 value={tempDestination}
                 onChange={(e) => setTempDestination(e.target.value)}
                 className="w-full mt-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"

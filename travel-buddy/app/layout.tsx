@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Providers from "@/components/Provider"
 import { RouteProvider } from "@/context/RouteContext"
 
 const geistSans = Geist({
@@ -36,11 +35,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} antialiased`}
       >
-        <Providers>
           <RouteProvider>
             {children}
           </RouteProvider>
-        </Providers>
       </body>
     </html>
   );

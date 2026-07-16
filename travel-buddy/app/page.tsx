@@ -36,7 +36,7 @@ export default function HomePage() {
             Punch in where you're standing and where you need to be. Wayfr
             finds the next train on your line, or builds a multi-leg route across
             lines when there isn't a direct one — fares, interchange points, and
-            live platform crowding included, the way the announcer would tell you
+            platform crowding included, the way the announcer would tell you
             if announcers were useful.
           </p>
 
