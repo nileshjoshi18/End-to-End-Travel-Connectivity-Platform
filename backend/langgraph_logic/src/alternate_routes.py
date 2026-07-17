@@ -16,7 +16,8 @@ Usage:
 import asyncio
 import pandas as pd
 from sqlalchemy import create_engine
-
+import os
+from dotenv import load_dotenv
 from system_brain import changeover_routes, determine_line
 from train_details import get_train_details
 from nearest_station import get_nearest_station
@@ -28,8 +29,11 @@ from routing_results import (
     minutes_to_time,
 )
 
-engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
 
+load_dotenv()
+DB_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DB_URL)
 
 def _route_signature(legs: list) -> tuple:
     """Build a hashable signature of a route's legs to detect duplicates

@@ -1,9 +1,12 @@
 # train_details.py  —  pure module, no FastAPI
 import pandas as pd
+import os
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
 
-engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
-
+load_dotenv()
+DB_URL = os.getenv("DATABASE_URL")
+engine = create_engine(DB_URL)
 
 def get_minutes(t) -> int:
     if t is None: return 0

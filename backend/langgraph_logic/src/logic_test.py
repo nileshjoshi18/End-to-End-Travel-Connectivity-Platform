@@ -1,9 +1,14 @@
 # logic_test.py
 import pandas as pd
+import os
 from sqlalchemy import create_engine
 from system_brain import determine_line
+from dotenv import load_dotenv
 
-engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
+load_dotenv()
+DB_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DB_URL)
 
 def get_minutes(t) -> int:
     if t is None: return 0

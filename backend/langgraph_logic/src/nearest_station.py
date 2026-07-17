@@ -4,7 +4,12 @@ import requests
 import pandas as pd
 from sqlalchemy import create_engine, text
 from urllib.parse import quote
-engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
+from dotenv import load_dotenv
+
+load_dotenv()
+DB_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DB_URL)
 
 
 def get_current_ist_time() -> str:

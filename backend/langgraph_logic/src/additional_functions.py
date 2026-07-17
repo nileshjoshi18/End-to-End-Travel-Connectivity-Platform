@@ -1,7 +1,12 @@
 import pandas as pd
+import os
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
 
-engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
+load_dotenv()
+DB_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DB_URL)
 FARE_TABLE = [[0,3,5],[4,8,10],[9,15,15],[16,21,20],[22,30,25],[31,40,30]]
 
 def fare_from_train_details(route_legs: list) -> list[int]:

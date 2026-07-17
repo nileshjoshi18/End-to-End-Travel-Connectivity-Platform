@@ -15,14 +15,18 @@ directly here — so the agent never needs DB access (no run_sql tool needed).
 import asyncio
 import pandas as pd
 from sqlalchemy import create_engine, text
-
+import os
 from system_brain import changeover_routes, determine_line
 from logic_test import get_minutes, fmt
 from train_details import get_train_details
 from nearest_station import get_nearest_station
 from additional_functions import fare_from_train_details, single_leg_fare, fetch_crowd_scores, _get_all_stop_ids_for_name, _has_direct_connection, _find_shared_line_stop_ids
+from dotenv import load_dotenv
 
-engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
+load_dotenv()
+DB_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DB_URL)
 
 def time_to_minutes(t: str, day_offset: int = 0) -> int:
     h, m = map(int, str(t).split(':')[:2])

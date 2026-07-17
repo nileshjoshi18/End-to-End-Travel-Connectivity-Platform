@@ -9,7 +9,9 @@ from sqlalchemy import create_engine
 
 load_dotenv()  
 
-engine = create_engine('postgresql://postgres:postgres@localhost:5432/mumbai_transit')
+DB_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DB_URL)
 client = Groq(api_key=os.getenv("GROK_AI_API_KEY"))
 
 _stop_id_cache: dict[str, str | None] = {}
