@@ -130,6 +130,7 @@ def _has_direct_connection(src_stop_id: str, dst_stop_id: str) -> bool:
                     return True
         return False
     except Exception:
+        print(f"Direct connection check failed: {e}")
         return False
 
 
@@ -148,17 +149,28 @@ def _find_shared_line_stop_ids(
     route_stops via _has_direct_connection before being accepted. The first
     pair that verifies wins.
     """
+    #     src_candidates = [
+    #     "VSH_HR",
+    #     "VSH_MLN1",
+    #     "VSH_METRO"
+    # ]
     def line_of(stop_id: str) -> str:
         return stop_id.rsplit("_", 1)[-1] if "_" in stop_id else ""
 
     src_by_line: dict[str, list[str]] = {}
     for s in src_candidates:
         src_by_line.setdefault(line_of(s), []).append(s)
+    # src_by_line = {
+    #     "HR": ["VSH_HR"],
+    #     "MLN1": ["VSH_MLN1"],
+    #     "METRO": ["VSH_METRO"]
+    # }
+
     dst_by_line: dict[str, list[str]] = {}
     for d in dst_candidates:
         dst_by_line.setdefault(line_of(d), []).append(d)
 
-    shared_lines = set(src_by_line) & set(dst_by_line)
+    shared_lines = set(src_by_line) & set(dst_by_line) 
     if not shared_lines:
         return None, None
 

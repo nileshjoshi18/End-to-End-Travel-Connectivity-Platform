@@ -83,7 +83,9 @@ def find_trains_fast(
         stop_dep_mins = origin_mins + row['offset_to_start']
         arrival_mins  = stop_dep_mins + row['trip_duration']
         return pd.Series([stop_dep_mins, arrival_mins])
-
+        #09:12 → 09:26 => [552, 566]
+    
+    #Handle trains after midnight
     df_merged[['stop_dep_mins', 'arrival_mins']] = df_merged.apply(calc_times, axis=1)
 
     df_merged['stop_dep_mins_adj'] = df_merged['stop_dep_mins'].where(
@@ -91,7 +93,7 @@ def find_trains_fast(
         df_merged['stop_dep_mins'] + 1440,
     )
 
-    df_filtered = df_merged[df_merged['stop_dep_mins_adj'] >= user_mins].copy()
+    df_filtered = df_merged[df_merged['stop_dep_mins_adj'] >= user_mins].copy() #Remove trains before user's requested time
     if df_filtered.empty:
         return []
 

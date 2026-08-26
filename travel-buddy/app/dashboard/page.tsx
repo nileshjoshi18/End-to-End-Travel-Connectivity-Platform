@@ -54,7 +54,7 @@ export default function Dashboard() {
 
       const legs: any[] = data.legs ?? []
       if (legs.length === 0) {
-        setErrorMsg("No routes found between these locations — try different addresses.")
+        setErrorMsg("No routes found between these locations — try differe  nt addresses.")
         return
       }
 

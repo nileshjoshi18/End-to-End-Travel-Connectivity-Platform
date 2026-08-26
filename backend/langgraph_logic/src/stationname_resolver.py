@@ -21,7 +21,7 @@ def get_all_stops() -> str:
     return df.to_csv(index=False)
 
 def resolve_stop_id(google_maps_name: str) -> str | None:
-    cache_key = hashlib.md5(google_maps_name.lower().strip().encode()).hexdigest()
+    cache_key = hashlib.md5(google_maps_name.lower().strip().encode()).hexdigest() #making a cachekey and checking if it matches the cache memory.
 
     if cache_key in _stop_id_cache:
         print(f"Cache hit: '{google_maps_name}' → '{_stop_id_cache[cache_key]}'")

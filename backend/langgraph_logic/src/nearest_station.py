@@ -1,4 +1,39 @@
 # nearest_station.py  —  pure module, no FastAPI
+#                  User input
+#                      │
+#                      ▼
+#              get_routes(...)
+#                      │
+#                      ▼
+#           get_nearest_station(...)
+#                      │
+#           ┌──────────┴──────────┐
+#           │                     │
+#           ▼                     ▼
+#       Start stop             End stop
+#           │                     │
+#           ▼                     ▼
+#       Nominatim               Nominatim
+#           │                     │
+#           ▼                     ▼
+#       lat / lng               lat / lng
+#           │                     │
+#           ▼                     ▼
+#       PostGIS                 PostGIS
+#           │                     │
+#           ▼                     ▼
+#    nearest station      nearest station
+#           │                     │
+#           └──────────┬──────────┘
+#                      │
+#                station IDs
+#                      │
+#                      ▼
+#                 Route logic
+#                      │
+#                      ▼
+#                Final result
+
 import os
 import requests
 import pandas as pd

@@ -91,6 +91,16 @@ def changeover_routes(start_stop: str, end_stop: str):
     line_paths = find_line_paths(start_line, end_line)
     routes     = expand_to_station_routes(line_paths, start_stop, end_stop)
     return routes
-
+# changeover_routes()
+#         │
+#         ▼
+#      routes
+#         │
+#         ▼
+# [
+#     [leg, leg, leg],   ← route 1
+#     [leg, leg, leg],   ← route 2
+#     [leg, leg, leg],   ← route 3
+# ]
 if __name__ == "__main__":
     routes123 = changeover_routes("PAN_HR", "VIR_WR")
